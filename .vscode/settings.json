@@ -1,0 +1,15 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+	"typescript.tsdk": "./node_modules/typescript/lib",
+	"files.exclude": {
+		"**/.git": true,
+		"**/.svn": true,
+		"**/.hg": true,
+		"**/.DS_Store": true,
+		"**/node_modules": true,
+		"**/.vscode": true,
+		"uploads": true,
+		"wwwroot/monaco": true,
+		"**/*.js": { "when": "$(basename).ts" }
+	}
+}

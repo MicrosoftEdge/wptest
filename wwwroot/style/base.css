@@ -1,0 +1,60 @@
+* { 
+	display: flex; flex-direction: column;
+}
+audio,base,datalist,dialog,head,link,meta,noscript,param,script,style,template,title,basefont,noframes {
+	display: none; flex-direction: row;
+}
+address,article,aside,blockquote,body,dd,details,div,dl,dt,fieldset,figcaption,figure,footer,form,h1,h2,h3,h4,h5,h6,header,hgroup,hr,html,legend,main,menu,nav,ol,optgroup,option,p,pre,section,summary,ul,center,dir,frameset,marquee {
+	display: block; flex-direction: row;
+}
+button,meter,progress,select,textarea {
+	display: inline-block; flex-direction: row;
+}
+a,abbr,area,b,bdi,bdo,br,canvas,cite,code,data,del,dfn,em,embed,i,iframe,img,input,ins,kbd,keygen,label,map,mark,menuitem,object,output,q,rb,rp,rtc,s,samp,small,source,span,strong,sub,sup,time,track,u,var,video,wbr,acronym,applet,big,font,frame,isindex,strike,tt,blink {
+	display: inline; flex-direction: row;
+}
+li {
+	display: list-item; flex-direction: row;
+}
+table {
+	display: table; flex-direction: row;
+}
+tbody {
+	display: table-row-group; flex-direction: row;
+}
+thead {
+	display: table-header-group; flex-direction: row;
+}
+tfoot {
+	display: table-footer-group; flex-direction: row;
+}
+colgroup {
+	display: table-column-group; flex-direction: row;
+}
+tr {
+	display: table-row; flex-direction: row;
+}
+col {
+	display: table-column; flex-direction: row;
+}
+td, th {
+	display: table-cell; flex-direction: row;
+}
+
+
+*, *::before, *::after { box-sizing: inherit; }
+:root { box-sizing: border-box; overflow: hidden; }
+output { -ms-user-select: element; user-select: contain; }
+
+
+*[inline] { display: inline; }
+*[block] { display: block; }
+*[flex] { display: flex; }
+*[flex00] { flex: 0 0 auto; }
+*[flex10] { flex: 1 0 auto; }
+*[flex01] { flex: 0 1 auto; }
+*[flex11] { flex: 1 1 auto; }
+*[row] { flex-direction: row; }
+*[column] { flex-direction: column; }
+*[grid] { display: -ms-grid; display: grid; }
+*[hidden] { display: none !important; }

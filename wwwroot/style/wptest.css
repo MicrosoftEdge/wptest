@@ -1,0 +1,242 @@
+body {
+	
+	width: 100vw; height: 100vh;
+	margin: 0; padding: 0;
+	
+	display: flex;
+	flex-direction: column;	
+}
+
+body > * {
+	background: white;
+	transform: translateZ(0);
+	position: relative;
+}
+
+body > top-row > *, body > bottom-row > * {
+	flex: 1 1 0;
+}
+
+/* [of="body"] { */
+
+	body-toolbar { flex: 0 0 40px; }
+	top-row { flex: 1 1 0; z-index: 1; }
+	bottom-row { flex: 1 1 0; }
+
+	html-pane { flex: 1 1 0; position: relative; z-index: 3; }
+	css-pane { flex: 1 1 0; position: relative; z-index: 2; }
+	js-pane { flex: 1 1 0; position: relative; z-index: 1; }
+	tools-pane { flex: 1 1 0; position: relative; }
+	output-pane { flex: 1 1 0; position: relative; }
+
+	body > dialog { 
+		background: rgba(0,0,0,0.7);
+		display: -ms-grid; -ms-grid-row: 1; -ms-grid-column: 1; -ms-grid-row-span: 3; -ms-grid-column-span: 2; -ms-grid-columns: 1fr; -ms-grid-rows: 1fr;
+		display: grid; grid-row: 1 / span 3; grid-column: 1 / span 2; 
+		width: 100vw; height: 100vh;
+		position: absolute;
+		z-index: 10000;
+		font-family: "Segoe UI", sans-serif;
+	}
+	body > dialog > section {
+		-ms-grid-row-align: center;
+		-ms-grid-column-align: center;
+		align-self: center;
+		justify-self: center;
+		background: white;
+		padding: 5px;
+	}
+	body > dialog > section > h1 {
+		margin-top: 0;
+	}
+
+/* } */
+
+tools-pane {
+	display: flex;
+}
+
+/* [of="tools-pane"] {*/
+
+	tools-pane > js-toolbar {
+		flex: 0 0 40px; height: 40px;
+	}
+
+	tools-pane-tabs {
+		flex: 1 1 0;
+		position: relative;
+	}
+
+	tools-pane-tabs > * {
+		position: absolute; 
+		top: 0; left: 0; right: 0; bottom: 0;
+		background: white;
+		overflow: hidden;
+		z-index: 0;
+		transform: translateZ(0);
+	}
+
+	tools-pane-tabs > [is-active-pane] {
+		z-index: 1;
+	}
+
+	tools-pane-watches:hover {
+		overflow-y: scroll;
+		overflow-y: overlay;
+	}
+	@supports(-ms-overflow-style: -ms-autohiding-scrollbar) {
+		tools-pane-watches {
+			overflow-y: scroll !important;
+			-ms-overflow-style: -ms-autohiding-scrollbar !important;
+		}
+	}
+
+
+/* } */
+
+/* [of="tools-pane-watches"] { */
+
+	.watch-filter-textbox {
+		position: absolute; top: 0px; right: 0px; 
+		-webkit-appearance: none; appearance: none; border: none; background: transparent;
+		text-align: right; padding-right: 20px;
+		font-family: "Segoe UI Symbol", "Segoe UI", sans-serif;
+	}
+	.watch-filter-textbox:focus {
+		background: yellow; outline: none;
+	}
+	.watch-filter-textbox:valid {
+		text-align: left; background: yellow; outline: none;
+	}
+	.watch-list {
+		margin: 4px;
+		font-family: Segoe UI, Tahoma, sans-serif;
+		font-size: 10pt;
+		display: flex;
+		flex-direction: column;
+		margin: 0; padding: 0;
+	}
+	.watch-list > li { display: flex; flex-direction: row; margin: 0; padding: 0; height: 14pt; overflow: hidden; white-space: nowrap; }
+	.watch-list > li > input[type="checkbox"] { min-width: 13px; } /* chrome hack */
+	.watch-list > li > input[type="text"] { max-width: 200px; flex: 0 1 200px; padding: 0; -webkit-appearance: none; appearance: none; background: transparent; border: none; }
+	.watch-list > li > output { flex: 1; padding: 0; padding-left: 10px; -webkit-appearance: none; appearance: none; background: transparent; border: none; }
+	.watch-list > li > input[type="text"][readonly], .watch-list > li > output { color: gray; }
+
+
+/* } */
+
+tools-pane-console {
+	padding: 10px; 
+	font-family: "Consolas", monospace; 
+	font-size: 10pt; 
+	word-wrap: break-word;
+}
+
+output-pane {
+	display: -ms-grid; display: grid;
+	grid-template-columns: 1fr 40px; -ms-grid-columns: 1fr 40px;
+}
+
+/* [of="output-pane"] { */
+
+	iframe {
+		grid-row: 1; -ms-grid-row: 1;
+		grid-column: 1; -ms-grid-column: 1;
+		pointer-events: none; /* chrome hack */
+	}
+
+	iframe[is-active] {
+		pointer-events: all;
+	}
+
+	output-pane-cover {
+		width: 100%; 
+		height: 100%; 
+		grid-row: 1; -ms-grid-row: 1;
+		grid-column: 1; -ms-grid-column: 1;
+		position: relative; 
+		overflow: hidden;
+		background: transparent; 
+		pointer-events: none; 
+	}
+
+	output-pane-cover[is-active] {
+		background: rgba(255,255,255,0.25); 
+		pointer-events: all;
+	}
+
+	output-pane-cover > * {
+		pointer-events: none;
+	}
+
+	output-pane-toolbar {
+		grid-row: 1; -ms-grid-row: 1;
+		grid-column: 2; -ms-grid-column: 2;
+	}
+
+/* } */
+
+[role=toolbar] > button {
+	background: transparent;
+	border: none;
+	height: 40px;
+	padding: 4px 10px;
+	cursor: pointer;
+	transition: color 0.2s;
+	white-space: nowrap; /* edgehack */
+	padding: calc(20px - 0.6em) 10px; /* chromehack */
+}
+
+[role=toolbar] > button[aria-expanded=false] {
+	color: darkgray;
+}
+
+[role=toolbar] > button:hover {
+	color: gray;
+	background: #f5f5f5;
+}
+
+[role=toolbar] > button:focus {
+	outline: none;
+	background: #eee;
+}
+
+[role=toolbar] > button:active {
+	outline: none;
+	background: #ddd;
+}
+
+[role=toolbar] > hr ~ input {
+	-webkit-appearance: none; appearance:none; 
+	float: right; margin: 3px; height: calc(100% - 6px);
+	color: silver; border: none; background: transparent;
+	transition: color 0.15s;
+	text-align: right;
+}
+[role=toolbar] > hr ~ input:hover {
+	color: darkgray;
+}
+[role=toolbar] > hr ~ input:focus {
+	color: black;
+}
+
+/* [of="monaco-text-editor"] { */
+
+	.monaco-editor:not(.focused) .current-line {
+		border: none !important
+	}
+
+	.monaco-editor:not(.focused):hover .monaco-editor-background {
+		background: #f5f5f5;
+	}
+
+	/* hack to hide non-functional monaco commands */
+	css-pane .monaco-menu .monaco-action-bar.vertical .action-item:nth-child(5),
+	css-pane .monaco-menu .monaco-action-bar.vertical .action-item:nth-child(6),
+	css-pane .monaco-menu .monaco-action-bar.vertical .action-item:nth-child(7),
+	css-pane .monaco-menu .monaco-action-bar.vertical .action-item:nth-child(10) {
+		outline: 3px solid red; outline-offset: -3px;
+		display: none !important;
+	}
+
+/* } */
