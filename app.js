@@ -23,7 +23,7 @@ function generateNewId() {
 }
 
 app.get("/[a-z0-9]*[0-9]", function(req, res) {
-  res.redirect("/#" + req.path.substr(1));
+  res.redirect("/#/" + req.path.substr(1));
 });
 
 app.get("/uploads/[a-z0-9]*[0-9].json", function(req, res) {
