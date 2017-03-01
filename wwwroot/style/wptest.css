@@ -80,26 +80,39 @@ tools-pane {
 		z-index: 1;
 	}
 
-	tools-pane-watches:hover {
-		overflow-y: scroll;
-		overflow-y: overlay;
-	}
-	@supports(-ms-overflow-style: -ms-autohiding-scrollbar) {
-		tools-pane-watches {
-			overflow-y: scroll !important;
-			-ms-overflow-style: -ms-autohiding-scrollbar !important;
-		}
-	}
-
 
 /* } */
+
+tools-pane-watches {
+	overflow: scroll;
+	overflow-x: none;
+	overflow-y: scroll;
+}
+
+@supports(overflow-y: overlay) {
+	tools-pane-watches:hover {
+		overflow-y: overlay;
+	}
+	.watch-filter-textbox {
+		padding-right: 20px;
+	}
+}
+@supports(-ms-overflow-style: -ms-autohiding-scrollbar) {
+	tools-pane-watches {
+		overflow-y: scroll !important;
+		-ms-overflow-style: -ms-autohiding-scrollbar !important;
+	}
+	.watch-filter-textbox {
+		padding-right: 20px;
+	}
+}
 
 /* [of="tools-pane-watches"] { */
 
 	.watch-filter-textbox {
 		position: absolute; top: 0px; right: 0px; 
 		-webkit-appearance: none; appearance: none; border: none; background: transparent;
-		text-align: right; padding-right: 20px;
+		text-align: right; 
 		font-family: "Segoe UI Symbol", "Segoe UI", sans-serif;
 	}
 	.watch-filter-textbox:focus {
