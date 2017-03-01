@@ -85,7 +85,7 @@ tools-pane {
 
 tools-pane-watches {
 	overflow: scroll;
-	overflow-x: none;
+	overflow-x: hidden;
 	overflow-y: scroll;
 }
 
