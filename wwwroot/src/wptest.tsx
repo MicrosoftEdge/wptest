@@ -198,10 +198,18 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 		
 		onbeforeupdate(this: MonacoTextEditorState, node: M.VirtualNode, oldn: M.VirtualNode) {
 
+			// verifies that we have a text control to work with
+			if(!this.editor) return false;
+
 			// verifies whether we need to change the text of the control
 			var theNewValue$ = node.attrs["value$"];
 			var theNewValue = theNewValue$();
-			if(theNewValue != this.value && !this.editor.isFocused()) {
+			var cantForciblyUpdate = () => (
+				this.editor.isFocused() 
+				&& this.value 
+				&& theNewValue
+			);
+			if(theNewValue != this.value && !cantForciblyUpdate()) {
 
 				// there was a model update
 				this.isDirty = false;
