@@ -20,8 +20,8 @@ body > top-row > *, body > bottom-row > * {
 /* [of="body"] { */
 
 	body-toolbar { flex: 0 0 40px; }
-	top-row { flex: 1 1 0; z-index: 1; }
-	bottom-row { flex: 1 1 0; }
+	top-row { flex: 12 0 0; z-index: 1; }
+	bottom-row { flex: 13 0 0; background: #f5f5f5; }
 
 	html-pane { flex: 1 1 0; position: relative; z-index: 3; }
 	css-pane { flex: 1 1 0; position: relative; z-index: 2; }
@@ -70,7 +70,7 @@ tools-pane {
 	tools-pane-tabs > * {
 		position: absolute; 
 		top: 0; left: 0; right: 0; bottom: 0;
-		background: white;
+		background: #f5f5f5;
 		overflow: hidden;
 		z-index: 0;
 		transform: translateZ(0);
@@ -103,10 +103,10 @@ tools-pane {
 		font-family: "Segoe UI Symbol", "Segoe UI", sans-serif;
 	}
 	.watch-filter-textbox:focus {
-		background: yellow; outline: none;
+		background: #ddd; outline: none;
 	}
 	.watch-filter-textbox:valid {
-		text-align: left; background: yellow; outline: none;
+		text-align: left; background: #ddd; outline: none;
 	}
 	.watch-list {
 		margin: 4px;
@@ -133,15 +133,24 @@ tools-pane-console {
 }
 
 output-pane {
-	display: -ms-grid; display: grid;
-	grid-template-columns: 1fr 40px; -ms-grid-columns: 1fr 40px;
+	display: flex;
+	flex-direction: row;
 }
 
 /* [of="output-pane"] { */
 
 	iframe {
-		grid-row: 1; -ms-grid-row: 1;
-		grid-column: 1; -ms-grid-column: 1;
+		flex: 1 1 0px;
+		background: 
+			white
+			repeating-linear-gradient(
+				45deg,
+				rgba(0, 0, 0, 0.05),
+				rgba(0, 0, 0, 0.05) 10px,
+				rgba(0, 0, 0, 0.08) 10px,
+				rgba(0, 0, 0, 0.08) 20px
+			);
+		height: 100%; /* edge hack */
 		pointer-events: none; /* chrome hack */
 	}
 
@@ -150,11 +159,10 @@ output-pane {
 	}
 
 	output-pane-cover {
-		width: 100%; 
+		top: 0; left: 0;
+		width: calc(100% - 40px); 
 		height: 100%; 
-		grid-row: 1; -ms-grid-row: 1;
-		grid-column: 1; -ms-grid-column: 1;
-		position: relative; 
+		position: absolute; 
 		overflow: hidden;
 		background: transparent; 
 		pointer-events: none; 
@@ -170,8 +178,7 @@ output-pane {
 	}
 
 	output-pane-toolbar {
-		grid-row: 1; -ms-grid-row: 1;
-		grid-column: 2; -ms-grid-column: 2;
+		flex: 0 0 40px;
 	}
 
 /* } */

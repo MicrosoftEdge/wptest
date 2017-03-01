@@ -441,7 +441,7 @@ var ToolsPane = new Tag().from(a =>
 );
 
 var OutputPane = new Tag().from(a =>
-	<output-pane grid>
+	<output-pane>
 		<iframe id="outputPane" src="about:blank" border="0" frameborder="0" is-active={!vm.isPicking$()}></iframe>
 		<OutputPaneCover id="outputPaneCover" />
 		<output-pane-toolbar role="toolbar">
@@ -528,16 +528,15 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 		<body>
 
 			<BodyToolbar model={tm} />
-
-			<top-row row flex11>
+			<top-row row>
 				<HTMLPane />
 				<CSSPane />
 				<JSPane />
 			</top-row>
 
-			<bottom-row row flex11>
-				<ToolsPane />
+			<bottom-row row>
 				<OutputPane />
+				<ToolsPane />
 			</bottom-row>
 
 			<SelectorGenerationDialog />
