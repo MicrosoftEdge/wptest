@@ -979,7 +979,7 @@ var ToolsPane = new Tag().from(a => React.createElement("tools-pane", null,
         React.createElement(ToolsPaneConsole, { id: "jsPaneConsole", "activePane$": vm.activeJsTab$ }),
         React.createElement(ToolsPaneCode, { id: "jsPaneHeadCode", "value$": tm.jsHead$, "activePane$": vm.activeJsTab$ }),
         React.createElement(ToolsPaneCode, { id: "jsPaneBodyCode", "value$": tm.jsBody$, "activePane$": vm.activeJsTab$ }))));
-var OutputPane = new Tag().from(a => React.createElement("output-pane", { grid: true },
+var OutputPane = new Tag().from(a => React.createElement("output-pane", null,
     React.createElement("iframe", { id: "outputPane", src: "about:blank", border: "0", frameborder: "0", "is-active": !vm.isPicking$() }),
     React.createElement(OutputPaneCover, { id: "outputPaneCover" }),
     React.createElement("output-pane-toolbar", { role: "toolbar" },
@@ -1049,13 +1049,13 @@ var TestEditorView = new Tag().from(a => {
     // in all cases, we return the same markup though to avoid trashing
     return (React.createElement("body", null,
         React.createElement(BodyToolbar, { model: tm }),
-        React.createElement("top-row", { row: true, flex11: true },
+        React.createElement("top-row", { row: true },
             React.createElement(HTMLPane, null),
             React.createElement(CSSPane, null),
             React.createElement(JSPane, null)),
-        React.createElement("bottom-row", { row: true, flex11: true },
-            React.createElement(ToolsPane, null),
-            React.createElement(OutputPane, null)),
+        React.createElement("bottom-row", { row: true },
+            React.createElement(OutputPane, null),
+            React.createElement(ToolsPane, null)),
         React.createElement(SelectorGenerationDialog, null))).children;
 });
 m.route(document.body, '/new', { '/:id': TestEditorView() });
