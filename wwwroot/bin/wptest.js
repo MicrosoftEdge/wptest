@@ -208,7 +208,9 @@ class ViewModel {
         // ===================================================
         // editor settings
         // ===================================================
-        /** The id of the currently active tab */
+        /** The id of the currently edited test */
+        this.currentTestId$ = m.prop("new");
+        /** The combined jsHead and jsBody */
         this.jsCombined$ = function (v) {
             if (arguments.length == 0) {
                 var jsHead = tm.jsHead;
@@ -515,13 +517,18 @@ class ViewModel {
     /** Saves the test model on the server */
     saveOnline() {
         var data = tmData;
-        fetch('/new/testcase/', { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()).then(o => { tm.id = o.id; }).then(o => this.updateURL());
+        fetch('/new/testcase/', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }).then(r => r.json()).then(o => {
+            this.currentTestId$(o.id);
+            this.updateURL();
+        });
     }
     /** Resets the test model based on new data */
     openFromJSON(newData) {
         this.isLoading$(false);
         Object.assign(tmData, {
-            id: tm.id,
             title: 'UntitledTest',
             html: '',
             css: '',
@@ -538,7 +545,7 @@ class ViewModel {
     /** Updates url and page title on test id change */
     updateURL() {
         updatePageTitle();
-        location.hash = '#/' + tm.id;
+        location.hash = '#/' + vm.currentTestId$();
         history.replaceState(tmData, document.title, location.href); // TODO: clone
     }
     /** Exports the test into a web platform test */
@@ -1042,14 +1049,17 @@ var SelectorGenerationDialog = new Tag().with({
 var TestEditorView = new Tag().from(a => {
     // if the page moved to a new id 
     // then we need to reset all data and download the new test
-    if (a.id != tm.id) {
-        vm.openFromJSON({ id: a.id });
+    if (a.id != vm.currentTestId$()) {
+        vm.currentTestId$(a.id);
         if (a.id.indexOf('local:') == 0) {
             vm.openFromJSON(JSON.parse(localStorage.getItem(a.id)));
         }
         else if (a.id && a.id != 'new') {
             vm.isLoading$(true);
-            fetch('/uploads/' + a.id + '.json').then(r => r.json()).then(d => vm.openFromJSON(d));
+            vm.openFromJSON(null);
+            fetch('/uploads/' + a.id + '.json').then(r => r.json()).then(d => {
+                vm.openFromJSON(d);
+            });
         }
     }
     // in all cases, we return the same markup though to avoid trashing
