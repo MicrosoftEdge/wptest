@@ -54,7 +54,10 @@ class ViewModel {
 	// editor settings
 	// ===================================================
 	
-	/** The id of the currently active tab */
+	/** The id of the currently edited test */
+	currentTestId$ = m.prop("new")
+
+	/** The combined jsHead and jsBody */
 	jsCombined$ = function(v?:string) {
 		if(arguments.length == 0) {
 			var jsHead = tm.jsHead;
@@ -410,7 +413,14 @@ class ViewModel {
 	/** Saves the test model on the server */
 	saveOnline() {
 		var data = tmData;
-		fetch('/new/testcase/', { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()).then(o => {tm.id = o.id}).then(o => this.updateURL());
+		fetch('/new/testcase/', { 
+			method: 'POST', 
+			body: JSON.stringify(data) 
+		}).then(r => r.json()).then(o => {
+			this.currentTestId$(o.id);
+			this.updateURL();
+			this.run();
+		});
 	}
 
 	/** Whether the test model is still waiting on some data from the server */
@@ -420,7 +430,6 @@ class ViewModel {
 	openFromJSON(newData?: TestDataModel) {
 		this.isLoading$(false)
 		Object.assign<TestDataModel,TestDataModel>(tmData, {
-			id: tm.id,
 			title: 'UntitledTest',
 			html: '',
 			css: '',
@@ -438,7 +447,7 @@ class ViewModel {
 	/** Updates url and page title on test id change */
 	updateURL() {
 		updatePageTitle();
-		location.hash = '#/' + tm.id;
+		location.hash = '#/' + vm.currentTestId$();
 		history.replaceState(tmData, document.title, location.href); // TODO: clone
 	}
 

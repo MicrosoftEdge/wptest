@@ -522,13 +522,16 @@ var SelectorGenerationDialog = new Tag().with({
 var TestEditorView = new Tag <{id:string}> ().from(a => {
 	// if the page moved to a new id 
 	// then we need to reset all data and download the new test
-	if(a.id != tm.id) {
-		vm.openFromJSON({ id:a.id } as any);
+	if(a.id != vm.currentTestId$() && a.id == location.hash.substr(2)) {
+		vm.currentTestId$(a.id);
 		if(a.id.indexOf('local:') == 0) {
 			vm.openFromJSON(JSON.parse(localStorage.getItem(a.id)));
 		} else if(a.id && a.id != 'new') {
 			vm.isLoading$(true);
-			fetch('/uploads/' + a.id + '.json').then(r => r.json()).then(d => vm.openFromJSON(d));
+			vm.openFromJSON(null);
+			fetch('/uploads/' + a.id + '.json').then(r => r.json()).then(d => {
+				vm.openFromJSON(d);
+			});
 		}
 	}
 	// in all cases, we return the same markup though to avoid trashing

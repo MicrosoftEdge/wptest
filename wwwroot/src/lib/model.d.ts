@@ -1,5 +1,4 @@
 interface TestDataModel {
-	id: string,
 	title: string,
 	html: string,
 	css: string,
@@ -9,7 +8,6 @@ interface TestDataModel {
 }
 
 interface TestModel extends TestDataModel {
-	id$: Prop<string>,
 	title$: Prop<string>,
 	html$: Prop<string>,
 	css$: Prop<string>,
