@@ -66,8 +66,7 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 				this.editor.getModel().onDidChangeContent(e => {
 					if(this.editor.isFocused()) {
 						this.isDirty = true;
-						m.redraw(true);
-						m.redraw();
+						redrawIfReady();
 					}
 				});
 
@@ -563,8 +562,9 @@ setInterval(updatePageTitle, 3000);
 function updatePageTitle() {
 	var titlePart = '';
 	var urlPart = '';
-	if(tm.id && tm.id != 'new') {
-		urlPart = 'wptest.center/#/' + tm.id;
+	var id = vm.currentTestId$();
+	if(id && id != 'new') {
+		urlPart = 'wptest.center/#/' + id;
 	} else {
 		urlPart = 'wptest.center';
 	}

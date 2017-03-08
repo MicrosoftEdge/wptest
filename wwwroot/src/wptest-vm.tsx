@@ -209,7 +209,7 @@ class ViewModel {
 			vm.refreshWatches();
 
 		}
-		m.redraw();
+		redrawIfReady();
 	}
 
 	/** Removes an expression from the list of watches */
@@ -218,7 +218,7 @@ class ViewModel {
 		if(index >= 0) {
 			tm.watches.splice(index,1);
 		}
-		m.redraw();
+		redrawIfReady();
 	}
 
 	/** Recomputes the values and display values of watches */
@@ -261,7 +261,7 @@ class ViewModel {
 			vm.watchDisplayValues[expr] = `${result}`; // TODO
 		}
 		
-		m.redraw();
+		redrawIfReady();
 	}
 
 
@@ -412,14 +412,36 @@ class ViewModel {
 
 	/** Saves the test model on the server */
 	saveOnline() {
+		// ensure test case title:
+		if(!tm.title || tm.title == "UntitledTest") {
+			try {
+				tm.title = prompt("Enter a title for your test", tm.title);
+			} catch (ex) {
+				// do nothing
+			}
+		}
+		// upload the testcase data
 		var data = tmData;
 		fetch('/new/testcase/', { 
 			method: 'POST', 
-			body: JSON.stringify(data) 
+			body: JSON.stringify(data),
+			credentials: "same-origin"
 		}).then(r => r.json()).then(o => {
-			this.currentTestId$(o.id);
-			this.updateURL();
-			this.run();
+
+			suspendRedrawsOn(redraw => {
+				
+				// update the data
+				this.currentTestId$(o.id);
+				this.updateURL();
+
+				// refresh the iframe and view
+				this.run();
+
+				// remove suspender
+				redraw();
+
+			})
+
 		});
 	}
 

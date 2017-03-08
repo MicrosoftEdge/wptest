@@ -84,12 +84,36 @@ declare var require: { (modulePaths:string[], callback:Function):void };
 
 m.route.prefix('#');
 
+var amountOfRedrawSuspenders = 0;
+function suspendRedrawsOn(codeToRun: (redraw: Function) => any) {
+
+	// add one more suspender to the list
+	amountOfRedrawSuspenders += 1;
+
+	// remove the suspender on completion
+	new Promise(codeToRun).then(redrawIfReady, redrawIfReady)
+	function redrawIfReady() {
+		if(--amountOfRedrawSuspenders == 0) {
+
+			// actually redraw if all suspenders are cleared
+			m.redraw();
+
+		}
+	}
+}
+
+function redrawIfReady() {
+	if(amountOfRedrawSuspenders == 0) {
+		m.redraw();
+	}
+}
+
 m.prop = function(cv) {
 	return function(nv) {
 		if(arguments.length >= 1) {
 			if(cv !== nv) {
 				cv = nv; 
-				m.redraw();
+				redrawIfReady();
 			}
 		} else {
 			return cv;
@@ -111,7 +135,7 @@ m.addProps = function(o) {
 	var r = Object.create(o);
 	for(let key in o) {
 		if(Object.prototype.hasOwnProperty.call(o,key)) {
-			Object.defineProperty(r, key, { get() { return o[key] }, set(v) { o[key]=v; m.redraw(); }})
+			Object.defineProperty(r, key, { get() { return o[key] }, set(v) { o[key]=v; redrawIfReady(); }})
 			r[key+'$'] = function(v) {
 				if(arguments.length == 0) {
 					return o[key];
