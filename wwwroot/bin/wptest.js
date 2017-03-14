@@ -22,12 +22,30 @@ var describe = function (node) {
 /// <reference path="monaco.d.ts" />
 /// <reference path="wptest-helpers.tsx" />
 m.route.prefix('#');
+var amountOfRedrawSuspenders = 0;
+function suspendRedrawsOn(codeToRun) {
+    // add one more suspender to the list
+    amountOfRedrawSuspenders += 1;
+    // remove the suspender on completion
+    new Promise(codeToRun).then(redrawIfReady, redrawIfReady);
+    function redrawIfReady() {
+        if (--amountOfRedrawSuspenders == 0) {
+            // actually redraw if all suspenders are cleared
+            m.redraw();
+        }
+    }
+}
+function redrawIfReady() {
+    if (amountOfRedrawSuspenders == 0) {
+        m.redraw();
+    }
+}
 m.prop = function (cv) {
     return function (nv) {
         if (arguments.length >= 1) {
             if (cv !== nv) {
                 cv = nv;
-                m.redraw();
+                redrawIfReady();
             }
         }
         else {
@@ -49,7 +67,7 @@ m.addProps = function (o) {
     var r = Object.create(o);
     for (let key in o) {
         if (Object.prototype.hasOwnProperty.call(o, key)) {
-            Object.defineProperty(r, key, { get() { return o[key]; }, set(v) { o[key] = v; m.redraw(); } });
+            Object.defineProperty(r, key, { get() { return o[key]; }, set(v) { o[key] = v; redrawIfReady(); } });
             r[key + '$'] = function (v) {
                 if (arguments.length == 0) {
                     return o[key];
@@ -367,7 +385,7 @@ class ViewModel {
             // we have no recollection of this watch, recompute everything
             vm.refreshWatches();
         }
-        m.redraw();
+        redrawIfReady();
     }
     /** Removes an expression from the list of watches */
     removePinnedWatch(expr) {
@@ -375,7 +393,7 @@ class ViewModel {
         if (index >= 0) {
             tm.watches.splice(index, 1);
         }
-        m.redraw();
+        redrawIfReady();
     }
     /** Recomputes the values and display values of watches */
     refreshWatches(elm) {
@@ -416,7 +434,7 @@ class ViewModel {
             vm.watchValues[expr] = result;
             vm.watchDisplayValues[expr] = `${result}`; // TODO
         }
-        m.redraw();
+        redrawIfReady();
     }
     /** Refreshes the output frame with the latest source code */
     run() {
@@ -519,10 +537,18 @@ class ViewModel {
         var data = tmData;
         fetch('/new/testcase/', {
             method: 'POST',
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
+            credentials: "same-origin"
         }).then(r => r.json()).then(o => {
-            this.currentTestId$(o.id);
-            this.updateURL();
+            suspendRedrawsOn(redraw => {
+                // update the data
+                this.currentTestId$(o.id);
+                this.updateURL();
+                // refresh the iframe and view
+                this.run();
+                // remove suspender
+                redraw();
+            });
         });
     }
     /** Resets the test model based on new data */
@@ -695,8 +721,7 @@ var MonacoTextEditor = new Tag().with({
             this.editor.getModel().onDidChangeContent(e => {
                 if (this.editor.isFocused()) {
                     this.isDirty = true;
-                    m.redraw(true);
-                    m.redraw();
+                    redrawIfReady();
                 }
             });
             // register to the window resize event, and relayout if needed
@@ -1049,7 +1074,7 @@ var SelectorGenerationDialog = new Tag().with({
 var TestEditorView = new Tag().from(a => {
     // if the page moved to a new id 
     // then we need to reset all data and download the new test
-    if (a.id != vm.currentTestId$()) {
+    if (a.id != vm.currentTestId$() && a.id == location.hash.substr(2)) {
         vm.currentTestId$(a.id);
         if (a.id.indexOf('local:') == 0) {
             vm.openFromJSON(JSON.parse(localStorage.getItem(a.id)));
@@ -1080,8 +1105,9 @@ setInterval(updatePageTitle, 3000);
 function updatePageTitle() {
     var titlePart = '';
     var urlPart = '';
-    if (tm.id && tm.id != 'new') {
-        urlPart = 'wptest.center/#/' + tm.id;
+    var id = vm.currentTestId$();
+    if (id && id != 'new') {
+        urlPart = 'wptest.center/#/' + id;
     }
     else {
         urlPart = 'wptest.center';
