@@ -22,9 +22,17 @@ if(fs.existsSync("./app.config.js")) {
 	Object.assign(CFG, require('./app.config.js'));
 }
 
+// detect if we are in test mode
+// test mode is designed to boot, connect to the database, then exit in less than 30s
+var isTestModeEnabled = !process.argv.every(arg => arg != '--test');
+setTimeout(action => console.log('Test took too long') || process.exit(1), 30000);
+
 // connect to mongodb
 var db = null, tests = null, authors = null;
 require('mongodb').connect(CFG.MONGO_URL, function (err, new_db) {
+
+	// ensure success
+	if(err || !new_db) throw err;
 
 	// get references to the collections we use
 	var new_tests = new_db.collection('tests');
@@ -42,6 +50,11 @@ require('mongodb').connect(CFG.MONGO_URL, function (err, new_db) {
 	db = new_db;
 	tests = new_tests;
 	authors = new_authors;
+
+	// in test mode this is sufficient
+	if(isTestModeEnabled) {
+		setTimeout(action => console.log('Test succeeded') || process.exit(0), 1000);
+	}
 
 });
 
