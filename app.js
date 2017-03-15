@@ -25,7 +25,9 @@ if(fs.existsSync("./app.config.js")) {
 // detect if we are in test mode
 // test mode is designed to boot, connect to the database, then exit in less than 30s
 var isTestModeEnabled = !process.argv.every(arg => arg != '--test');
-setTimeout(action => console.log('Test took too long') || process.exit(1), 30000);
+if(isTestModeEnabled) {
+	setTimeout(action => console.log('Test took too long') || process.exit(1), 30000);
+}
 
 // connect to mongodb
 var db = null, tests = null, authors = null;
