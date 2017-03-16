@@ -90,6 +90,9 @@ tools-pane-watches {
 }
 
 @supports(overflow-y: overlay) {
+	tools-pane-watches {
+		overflow-y: hidden;
+	}
 	tools-pane-watches:hover {
 		overflow-y: overlay;
 	}
