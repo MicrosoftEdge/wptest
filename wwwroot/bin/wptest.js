@@ -534,6 +534,16 @@ class ViewModel {
     }
     /** Saves the test model on the server */
     saveOnline() {
+        // ensure test case title:
+        if (!tm.title || tm.title == "UntitledTest") {
+            try {
+                tm.title = prompt("Enter a title for your test", tm.title);
+            }
+            catch (ex) {
+                // do nothing
+            }
+        }
+        // upload the testcase data
         var data = tmData;
         fetch('/new/testcase/', {
             method: 'POST',
@@ -672,6 +682,7 @@ var vm = new ViewModel();
 var Input = new Tag().from(a => React.createElement("input", Object.assign({}, attributesOf(a), { value: a.value$(), oninput: bindTo(a.value$), onchange: bindTo(a.value$) })));
 var InputCheckbox = new Tag().from(a => React.createElement("input", Object.assign({ type: "checkbox" }, attributesOf(a), { checked: a.value$(), onchange: bindTo(a.value$, "checked") })));
 var InputRadio = new Tag().from(a => React.createElement("input", Object.assign({ type: "radio" }, attributesOf(a), { checked: a.checkedValue$() == a.value, onchange: bindTo(a.checkedValue$) })));
+var TextArea = new Tag().from(a => React.createElement("textarea", Object.assign({}, attributesOf(a), { oninput: bindTo(a.value$), onchange: bindTo(a.value$) }), a.value$()));
 var BodyToolbar = new Tag().from(a => React.createElement("body-toolbar", { row: true, role: "toolbar" },
     React.createElement("button", { onclick: e => vm.run(), title: "Move your code to the iframe" }, "Run"),
     React.createElement("button", { onclick: e => { if (e.altKey) {
@@ -834,12 +845,34 @@ var MonacoTextEditor = new Tag().with({
                     break;
                 }
             }
+            // eventually recover current textbox focus state
+            let linkedTextbox = document.getElementById(node.attrs.id + "Textbox");
+            if (document.activeElement === linkedTextbox) {
+                let startPos = linkedTextbox.selectionStart;
+                let endPos = linkedTextbox.selectionEnd;
+                if (startPos > 0 || endPos > 0) {
+                    let startLine = 0, startPosInLine = startPos;
+                    let endLine = 0, endPosInLine = endPos;
+                    var lines = linkedTextbox.value.split(/\n/g);
+                    while (startPosInLine > lines[startLine].length) {
+                        startPosInLine -= lines[startLine].length + 1;
+                        startLine++;
+                    }
+                    while (endPosInLine > lines[endLine].length) {
+                        endPosInLine -= lines[endLine].length + 1;
+                        endLine++;
+                    }
+                    this.editor.setSelection(new monaco.Range(1 + startLine, 1 + startPosInLine, 1 + endLine, 1 + endPosInLine));
+                }
+                this.editor.focus();
+            }
+            redrawIfReady();
         });
     },
     onbeforeupdate(node, oldn) {
         // verifies that we have a text control to work with
         if (!this.editor)
-            return false;
+            return;
         // verifies whether we need to change the text of the control
         var theNewValue$ = node.attrs["value$"];
         var theNewValue = theNewValue$();
@@ -876,11 +909,27 @@ var MonacoTextEditor = new Tag().with({
             this.editor.setPosition({ lineNumber: elm.sourceLine, column: 1 + column });
             this.editor.focus();
         }
-        // this control never needs to be updated by mithril
-        return false;
     }
 }).from((a, c, s) => React.createElement("monaco-text-editor", { id: a.id, language: a.language },
-    React.createElement("monaco-text-editor-area", { id: a.id + 'Area', style: "position:absolute;top:0;left:0;right:0;bottom:0;" })));
+    React.createElement("monaco-text-editor-area", { id: a.id + 'Area', style: "position:absolute;top:0;left:0;right:0;bottom:0;" }),
+    React.createElement(TextArea, { id: a.id + 'Textbox', "value$": a.value$, hidden: !!s.editor, onkeydown: enableTabInTextarea, style: "appearance:none;background:transparent!important;border:none!important;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;width:calc(100% - 10px);white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:black;tab-size:4;outline:none!important;" }),
+    React.createElement("monaco-text-editor-placeholder", { hidden: (console.log(a.value$().length > 0), a.value$().length > 0), style: "appearance:none;background:transparent;border:none;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:silver;pointer-events:none;" }, ({
+        'javascript': '//<head>\n// HEAD CODE GOES HERE\n//</head>\n//\n// BODY CODE GOES HERE',
+        'html': '<!--<table>\n    <tr>\n        <td>HTML CODE</td>\n        <td>GOES HERE</td>\n    </tr>\n</table>-->',
+        'css': '/* CSS CODE GOES HERE         */\n/* table {                    */\n/*     border: 3px solid red; */\n/* }                          */'
+    }[a.language] || ''))));
+function enableTabInTextarea(e) {
+    // tab but not ctrl+tab
+    if (e.ctrlKey || e.altKey)
+        return;
+    if (e.keyCode == 9 || e.which == 9) {
+        e.preventDefault();
+        var s = this.selectionStart;
+        this.value = this.value.substring(0, this.selectionStart) + "\t" + this.value.substring(this.selectionEnd);
+        this.selectionStart = this.selectionEnd = s + 1;
+        this.onchange(e);
+    }
+}
 var TabButton = new Tag().from((a, c) => React.createElement("button", Object.assign({}, attributesOf(a), { onclick: e => a.activePane$(a.pane), "aria-controls": a.pane, "aria-expanded": `${a.pane == a.activePane$()}` }), c));
 var ToolsPaneToolbar = new Tag().from(a => React.createElement("tools-pane-toolbar", { row: true, "aria-controls": a.activePane$(), role: "toolbar" },
     React.createElement(TabButton, { pane: "jsPaneWatches", "activePane$": a.activePane$ }, "Watches"),
