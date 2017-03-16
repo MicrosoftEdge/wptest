@@ -16,6 +16,8 @@ var gBCW = elm => elm.getBoundingClientRect().width;
 var gBCH = elm => elm.getBoundingClientRect().height;
 var gBCT = elm => elm.getBoundingClientRect().top;
 var gBCL = elm => elm.getBoundingClientRect().left;
+var gBCB = elm => elm.getBoundingClientRect().bottom;
+var gBCR = elm => elm.getBoundingClientRect().right;
 
 var rAF = window.requestAnimationFrame.bind(window);
 

@@ -10,27 +10,34 @@ declare var outputPane : HTMLIFrameElement;
 /** The console pane (legacy code only) */
 declare var jsPaneConsole : HTMLElement;
 
-/** The helpers to inject in the iframe on reload (legacy code only) */
-var jsHelpers = { // TODO: remove this and use dynamic substitution
-	textContent: `
-	var d = document;
-	var w = window;
-	var $ = document.querySelector.bind(document);
-	var $$ = document.querySelectorAll.bind(document);
-	var eFP = document.elementFromPoint.bind(document);
+/** Converts the javascript code of watches to standard javascript */
+function expandShorthandsIn(jsCode: string): string {
+	return (
 
-	var gCS = window.getComputedStyle.bind(window);
-	var gBCW = elm => elm.getBoundingClientRect().width;
-	var gBCH = elm => elm.getBoundingClientRect().height;
-	var gBCT = elm => elm.getBoundingClientRect().top;
-	var gBCL = elm => elm.getBoundingClientRect().left;
+		jsCode
 
-	var rAF = window.requestAnimationFrame.bind(window);
+		.replace(/\b\$\(/g,'document.querySelector(')
+		.replace(/\b\$\b/g,'document.querySelector.bind(document)')
+		.replace(/\b\$$\(/g,'document.querySelectorAll(')
+		.replace(/\b\$$\b/g,'document.querySelectorAll.bind(document)')
+		.replace(/\beFP\(/g,'document.elementFromPoint(')
+		.replace(/\beFP\b/g,'document.elementFromPoint.bind(document)')
 
-	var describe = function(node) { 
-		return node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : '');
-	}
-`
+		.replace(/\bgCS\(/g,'getComputedStyle(')
+		.replace(/\bgCS\b/g,'getComputedStyle.bind(window)')
+		.replace(/\brAF\(/g,'requestAnimationFrame(')
+		.replace(/\brAF\b/g,'requestAnimationFrame.bind(window)')
+
+		.replace(/\.gBCW\(\)/g,'.getBoundingClientRect().width')
+		.replace(/\.gBCH\(\)/g,'.getBoundingClientRect().height')
+		.replace(/\.gBCL\(\)/g,'.getBoundingClientRect().left')
+		.replace(/\.gBCT\(\)/g,'.getBoundingClientRect().top')
+		.replace(/\.gBCR\(\)/g,'.getBoundingClientRect().right')
+		.replace(/\.gBCB\(\)/g,'.getBoundingClientRect().bottom')
+
+		.replace(/\bdescribe\b/g,"(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))")
+
+	);
 }
 
 /** The data of the test being writter (as JSON) */
@@ -94,8 +101,8 @@ class ViewModel {
 	/** The readonly watches for the selected element */
 	autoWatches = [
 		"describe($0)",
-		"gBCW($0)",
-		"gBCH($0)",
+		"$0.gBCW()",
+		"$0.gBCH()",
 		"gCS($0).display",
 		"gCS($0).position",
 		"gCS($0).marginLeft",
@@ -252,7 +259,7 @@ class ViewModel {
 		for(var expr of [...tm.watches,...vm.autoWatches]) {
 			var result = ''; 
 			if(expr && (w1.$0 || !~expr.indexOf("$0"))) {
-				try { result = w2.eval(expr); }
+				try { result = w2.eval(expandShorthandsIn(expr)); }
 				catch (ex) { result = '!!!' + (ex.message ? ex.message : `${ex}`); }
 			}
 
@@ -334,7 +341,6 @@ class ViewModel {
 
 		// write the document content
 		d.write("<title>" + tm.title.replace(/</g,"&lt;").replace(/>/g,"&gt;") + "</title>");
-		d.write("<script>" + jsHelpers.textContent + "<" + "/script>"); // TODO: stop using this and do an actual replace
 		d.write("<script>" + tm.jsHead + "<" + "/script>");
 		d.write("<style>" + tm.css + "</style>");
 		
@@ -505,7 +511,6 @@ class ViewModel {
 		ln`<script src="${pathToHarness}testharnessreport.js"></script>`;
 
 		// append the test case itself
-		ln`<script>${jsHelpers.textContent}</script>`; // TODO: inline this
 		if(tm.jsHead) {
 			ln`<script>${"\n\n"+tm.jsHead+"\n\n"}</script>`;
 		}
@@ -524,7 +529,7 @@ class ViewModel {
 var test_description = document.title;
 promise_test(
 	t => {
-		return new Promise(test => window.addEventListener('load', e=>test()))
+		return new Promise(test => addEventListener('load', e=>test()))
 		${
 			Array.from(tm.watches).map(
 				expr => ({
@@ -536,13 +541,13 @@ promise_test(
 			).map(
 				w => 
 				`.then(test => assert_equals(${
-					w.expression
+					expandShorthandsIn(w.expression)
 				}, ${
 					JSON.stringify(w.jsValue)
 				}, ${
 					JSON.stringify(`Invalid ${w.expression};`)
 				}))`
-			).join('\n\t\t\t')
+			).join('\n\t\t')
 		}
 	},
 	test_description
