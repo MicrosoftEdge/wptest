@@ -35,7 +35,7 @@ function expandShorthandsIn(jsCode: string): string {
 		.replace(/\.gBCR\(\)/g,'.getBoundingClientRect().right')
 		.replace(/\.gBCB\(\)/g,'.getBoundingClientRect().bottom')
 
-		.replace(/\bdescribe\b/g,"(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))")
+		.replace(/\bdescribe\(/g,"(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))(")
 
 	);
 }
@@ -189,7 +189,7 @@ class ViewModel {
 				dialog.autoId$(w1.$0.sourceTagId||'');
 				dialog.chosenMode$(w1.$0.sourceTagId ? 'auto' : 'selector')
 				dialog.chosenId$(w1.$0.sourceTagId||'');
-				dialog.chosenSelector$(describe(w1.$0));
+				dialog.chosenSelector$(buildSelectorFor(w1.$0));
 				dialog.isOpened$(true);
 				return;
 			}
@@ -553,9 +553,6 @@ promise_test(
 	test_description
 );
 </script>`;
-
-		// TODO: allow to save as a file
-		console.log(html);
 
 		var blob = new Blob([html], { type: 'text/html' });
 		var url = URL.createObjectURL(blob);
