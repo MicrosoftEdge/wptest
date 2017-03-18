@@ -12,9 +12,205 @@ var gBCW = elm => elm.getBoundingClientRect().width;
 var gBCH = elm => elm.getBoundingClientRect().height;
 var gBCT = elm => elm.getBoundingClientRect().top;
 var gBCL = elm => elm.getBoundingClientRect().left;
+var gBCB = elm => elm.getBoundingClientRect().bottom;
+var gBCR = elm => elm.getBoundingClientRect().right;
 var rAF = window.requestAnimationFrame.bind(window);
-var describe = function (node) {
-    return node.nodeName + (node.id ? `#${node.id}` : '') + (node.classList.length ? `.${node.classList[0]}` : '');
+var describe = function (elm) {
+    return elm.nodeName + (elm.id ? `#${elm.id}` : '') + (elm.classList.length ? `.${elm.classList[0]}` : '');
+};
+var buildSelectorFor = function (elm) {
+    var isValidPair = (selector, elm) => {
+        var matches = elm.ownerDocument.querySelectorAll(selector);
+        return (matches.length == 1) && (matches[0] === elm);
+    };
+    var isValid = (selector) => {
+        return isValidPair(selector, elm);
+    };
+    var getPossibleAttributesFor = (elm) => [
+        // #id
+        ...getIdsOf(elm).map(a => [
+            { selector: `#${escapeIdentForCSS(a)}`, slot: 'id' }
+        ]),
+        // tagname
+        [
+            { selector: getTagNameOf(elm), slot: 'tag' }
+        ],
+        // .class
+        ...getClassesOf(elm).map(c => [
+            { selector: `.${escapeIdentForCSS(c)}`, slot: 'class' }
+        ]),
+        // tagname|#id ... [attribute]
+        ...getAttributesOf(elm).map(a => [
+            elm.id ? { selector: `#${escapeIdentForCSS(a)}`, slot: 'id' } : { selector: getTagNameOf(elm), slot: 'tag' },
+            { selector: `[${a}]`, slot: 'class' } // atributes should never be non-css, and some have att=value
+        ]),
+        // tagname ... :nth-of-type(<int>)
+        [
+            { selector: getTagNameOf(elm), slot: 'tag' },
+            { selector: `:nth-of-type(${getNthTypeOf(elm)})`, slot: 'pseudo' }
+        ],
+    ];
+    var buildSelectorFrom = (input) => {
+        var tag = '';
+        var ids = '';
+        var cls = '';
+        var pse = '';
+        for (var ss of input) {
+            for (var s of ss) {
+                switch (s.slot) {
+                    case 'tag': {
+                        tag = tag || s.selector;
+                        break;
+                    }
+                    case 'id': {
+                        ids = ids || s.selector;
+                        break;
+                    }
+                    case 'class': {
+                        cls += s.selector;
+                        break;
+                    }
+                    case 'pseudo': {
+                        pse += s.selector;
+                        break;
+                    }
+                }
+            }
+        }
+        return tag + ids + cls + pse;
+    };
+    var escapeIdentForCSS = (item) => ((item.split('')).map(function (character) {
+        if (character === ':') {
+            return "\\" + (':'.charCodeAt(0).toString(16).toUpperCase()) + " ";
+        }
+        else if (/[ !"#$%&'()*+,.\/;<=>?@\[\\\]^`{|}~]/.test(character)) {
+            return "\\" + character;
+        }
+        else {
+            return encodeURIComponent(character).replace(/\%/g, '\\');
+        }
+    }).join(''));
+    var getTagNameOf = (elm) => escapeIdentForCSS(elm.tagName.toLowerCase());
+    var getNthTypeOf = (elm) => {
+        var index = 0, cur = elm;
+        do {
+            if (cur.tagName == elm.tagName) {
+                index++;
+            }
+        } while (cur = cur.previousElementSibling);
+        return index;
+    };
+    var getIdsOf = (elm) => {
+        return elm.id ? [elm.id] : [];
+    };
+    var getClassesOf = (elm) => {
+        var result = [];
+        for (var i = 0; i < elm.classList.length; i++) {
+            result.push(elm.classList[i]);
+        }
+        return result;
+    };
+    var getAttributesOf = (elm) => {
+        var result = [];
+        for (var i = 0; i < elm.attributes.length; i++) {
+            switch (elm.attributes[i].name.toLowerCase()) {
+                case "id":
+                case "class":
+                case "style": break;
+                case "name": if (/^[_-a-z0-9]+$/i.test(elm.getAttribute('name'))) {
+                    result.push('name="' + elm.getAttribute('name') + '"');
+                    break;
+                }
+                case "type": if (elm instanceof HTMLInputElement) {
+                    result.push('type=' + elm.type);
+                    break;
+                }
+                default: result.push(elm.attributes[i].name);
+            }
+        }
+        return result;
+    };
+    var buildLocalSelectorFor = (elm, prelude) => {
+        // let's try to build a selector using the element only
+        var options = getPossibleAttributesFor(elm);
+        if (isValid(prelude + buildSelectorFrom(options))) {
+            // let's remove stuff from the end until we can't
+            var cur_opts = options.slice(0);
+            var sav_opts = options.slice(options.length);
+            while (cur_opts.length > 1 || (cur_opts.length > 0 && sav_opts.length > 0)) {
+                var dropped_option = cur_opts.pop();
+                var new_opts = sav_opts.length ? cur_opts.concat(sav_opts) : cur_opts;
+                if (!isValid(prelude + buildSelectorFrom(new_opts))) {
+                    sav_opts.unshift(dropped_option);
+                }
+            }
+            // build the minimal selector
+            var new_opts = sav_opts.length ? cur_opts.concat(sav_opts) : cur_opts;
+            let elementSelector = buildSelectorFrom(new_opts);
+            // if we could not remove :nth-of-type and have no prelude, we might want to add a prelude about the parent
+            let parent = elm.parentElement;
+            if (!prelude && ~elementSelector.indexOf(':nth-of-type')) {
+                if (parent) {
+                    // this will help disambiguate things a bit
+                    if (parent.id) {
+                        prelude = `#${escapeIdentForCSS(parent.id)} > `;
+                    }
+                    else if (~(['HTML', 'BODY', 'HEAD', 'MAIN'].indexOf(parent.tagName))) {
+                        prelude = `${escapeIdentForCSS(getTagNameOf(parent))} > `;
+                    }
+                    else if (parent.classList.length) {
+                        prelude = `${escapeIdentForCSS(getTagNameOf(parent))}.${escapeIdentForCSS(parent.classList[0])} > `;
+                    }
+                    else {
+                        prelude = `${escapeIdentForCSS(getTagNameOf(parent))} > `;
+                    }
+                    // maybe we can even remove the nth-of-type now?
+                    let simplifiedElementSelector = elementSelector.replace(/:nth-of-type\(.*?\)/, '');
+                    if (isValid(prelude + simplifiedElementSelector)) {
+                        elementSelector = simplifiedElementSelector;
+                    }
+                }
+            }
+            return prelude + elementSelector;
+        }
+        else if (prelude) {
+            // the given prelude is not valid
+            return null;
+        }
+        else {
+            // let's see if we can just reply :root
+            if (!elm.parentElement) {
+                return ':root';
+            }
+            // let's try to find an id parent which can narrow down to one element only
+            let generalPrelude = '';
+            let cur = elm.parentElement;
+            while (cur = cur.parentElement) {
+                if (cur.id) {
+                    let r = buildLocalSelectorFor(elm, `#${escapeIdentForCSS(cur.id)} `);
+                    if (r)
+                        return r;
+                    break;
+                }
+            }
+            // let's try again but this time using a class
+            cur = elm.parentElement;
+            while (cur = cur.parentElement) {
+                if (cur.classList.length) {
+                    for (let ci = 0; ci < cur.classList.length; ci++) {
+                        let r = buildLocalSelectorFor(elm, `.${escapeIdentForCSS(cur.classList[ci])} `);
+                        if (r)
+                            return r;
+                    }
+                }
+            }
+            // let's just append this selector to a unique selector to its parent
+            //TODO: actually, we should filter based on whether we find the element uniquely instead, not its parent
+            let parentSelector = buildSelectorFor(elm.parentElement);
+            return buildLocalSelectorFor(elm, parentSelector + " > ");
+        }
+    };
+    return buildLocalSelectorFor(elm, '');
 };
 ///
 /// This file contains mithril extensions to build my own framework
@@ -186,28 +382,27 @@ function attributesOf(a) {
 ///
 /// <reference path="lib/wptest-framework.tsx" />
 /// <reference path="lib/model.d.ts" />
-/** The helpers to inject in the iframe on reload (legacy code only) */
-var jsHelpers = {
-    textContent: `
-	var d = document;
-	var w = window;
-	var $ = document.querySelector.bind(document);
-	var $$ = document.querySelectorAll.bind(document);
-	var eFP = document.elementFromPoint.bind(document);
-
-	var gCS = window.getComputedStyle.bind(window);
-	var gBCW = elm => elm.getBoundingClientRect().width;
-	var gBCH = elm => elm.getBoundingClientRect().height;
-	var gBCT = elm => elm.getBoundingClientRect().top;
-	var gBCL = elm => elm.getBoundingClientRect().left;
-
-	var rAF = window.requestAnimationFrame.bind(window);
-
-	var describe = function(node) { 
-		return node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : '');
-	}
-`
-};
+/** Converts the javascript code of watches to standard javascript */
+function expandShorthandsIn(jsCode) {
+    return (jsCode
+        .replace(/\b\$\(/g, 'document.querySelector(')
+        .replace(/\b\$\b/g, 'document.querySelector.bind(document)')
+        .replace(/\b\$$\(/g, 'document.querySelectorAll(')
+        .replace(/\b\$$\b/g, 'document.querySelectorAll.bind(document)')
+        .replace(/\beFP\(/g, 'document.elementFromPoint(')
+        .replace(/\beFP\b/g, 'document.elementFromPoint.bind(document)')
+        .replace(/\bgCS\(/g, 'getComputedStyle(')
+        .replace(/\bgCS\b/g, 'getComputedStyle.bind(window)')
+        .replace(/\brAF\(/g, 'requestAnimationFrame(')
+        .replace(/\brAF\b/g, 'requestAnimationFrame.bind(window)')
+        .replace(/\.gBCW\(\)/g, '.getBoundingClientRect().width')
+        .replace(/\.gBCH\(\)/g, '.getBoundingClientRect().height')
+        .replace(/\.gBCL\(\)/g, '.getBoundingClientRect().left')
+        .replace(/\.gBCT\(\)/g, '.getBoundingClientRect().top')
+        .replace(/\.gBCR\(\)/g, '.getBoundingClientRect().right')
+        .replace(/\.gBCB\(\)/g, '.getBoundingClientRect().bottom')
+        .replace(/\bdescribe\(/g, "(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))("));
+}
 /** The data of the test being writter (as JSON) */
 var tmData = {
     id: undefined,
@@ -260,8 +455,8 @@ class ViewModel {
         /** The readonly watches for the selected element */
         this.autoWatches = [
             "describe($0)",
-            "gBCW($0)",
-            "gBCH($0)",
+            "$0.gBCW()",
+            "$0.gBCH()",
             "gCS($0).display",
             "gCS($0).position",
             "gCS($0).marginLeft",
@@ -363,7 +558,7 @@ class ViewModel {
                 dialog.autoId$(w1.$0.sourceTagId || '');
                 dialog.chosenMode$(w1.$0.sourceTagId ? 'auto' : 'selector');
                 dialog.chosenId$(w1.$0.sourceTagId || '');
-                dialog.chosenSelector$(describe(w1.$0));
+                dialog.chosenSelector$(buildSelectorFor(w1.$0));
                 dialog.isOpened$(true);
                 return;
             }
@@ -424,7 +619,7 @@ class ViewModel {
             var result = '';
             if (expr && (w1.$0 || !~expr.indexOf("$0"))) {
                 try {
-                    result = w2.eval(expr);
+                    result = w2.eval(expandShorthandsIn(expr));
                 }
                 catch (ex) {
                     result = '!!!' + (ex.message ? ex.message : `${ex}`);
@@ -470,7 +665,6 @@ class ViewModel {
         };
         // write the document content
         d.write("<title>" + tm.title.replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</title>");
-        d.write("<script>" + jsHelpers.textContent + "<" + "/script>"); // TODO: stop using this and do an actual replace
         d.write("<script>" + tm.jsHead + "<" + "/script>");
         d.write("<style>" + tm.css + "</style>");
         attributeLines(0);
@@ -618,7 +812,6 @@ class ViewModel {
         ln `<script src="${pathToHarness}testharness.js"></script>`;
         ln `<script src="${pathToHarness}testharnessreport.js"></script>`;
         // append the test case itself
-        ln `<script>${jsHelpers.textContent}</script>`; // TODO: inline this
         if (tm.jsHead) {
             ln `<script>${"\n\n" + tm.jsHead + "\n\n"}</script>`;
         }
@@ -637,17 +830,15 @@ class ViewModel {
 var test_description = document.title;
 promise_test(
 	t => {
-		return new Promise(test => window.addEventListener('load', e=>test()))
+		return new Promise(test => addEventListener('load', e=>test()))
 		${Array.from(tm.watches).map(expr => ({
             expression: expr,
             jsValue: vm.watchValues[expr]
-        })).filter(w => !!w.expression).map(w => `.then(test => assert_equals(${w.expression}, ${JSON.stringify(w.jsValue)}, ${JSON.stringify(`Invalid ${w.expression};`)}))`).join('\n\t\t\t')}
+        })).filter(w => !!w.expression).map(w => `.then(test => assert_equals(${expandShorthandsIn(w.expression)}, ${JSON.stringify(w.jsValue)}, ${JSON.stringify(`Invalid ${w.expression};`)}))`).join('\n\t\t')}
 	},
 	test_description
 );
 </script>`;
-        // TODO: allow to save as a file
-        console.log(html);
         var blob = new Blob([html], { type: 'text/html' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
@@ -913,7 +1104,7 @@ var MonacoTextEditor = new Tag().with({
 }).from((a, c, s) => React.createElement("monaco-text-editor", { id: a.id, language: a.language },
     React.createElement("monaco-text-editor-area", { id: a.id + 'Area', style: "position:absolute;top:0;left:0;right:0;bottom:0;" }),
     React.createElement(TextArea, { id: a.id + 'Textbox', "value$": a.value$, hidden: !!s.editor, onkeydown: enableTabInTextarea, style: "appearance:none;background:transparent!important;border:none!important;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;width:calc(100% - 10px);white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:black;tab-size:4;outline:none!important;" }),
-    React.createElement("monaco-text-editor-placeholder", { hidden: (console.log(a.value$().length > 0), a.value$().length > 0), style: "appearance:none;background:transparent;border:none;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:silver;pointer-events:none;" }, ({
+    React.createElement("monaco-text-editor-placeholder", { hidden: a.value$().length > 0, style: "appearance:none;background:transparent;border:none;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:silver;pointer-events:none;" }, ({
         'javascript': '//<head>\n// HEAD CODE GOES HERE\n//</head>\n//\n// BODY CODE GOES HERE',
         'html': '<!--<table>\n    <tr>\n        <td>HTML CODE</td>\n        <td>GOES HERE</td>\n    </tr>\n</table>-->',
         'css': '/* CSS CODE GOES HERE         */\n/* table {                    */\n/*     border: 3px solid red; */\n/* }                          */'
@@ -954,14 +1145,14 @@ var ToolsPaneWatches = new Tag().from(a => React.createElement("tools-pane-watch
                     vm.removePinnedWatch(expr);
                     e.target.checked = true;
                 } } }),
-            React.createElement(Input, { type: "text", "value$": m.prop2(x => expr, v => a[i] = v) }),
+            React.createElement(Input, { type: "text", title: expr, "value$": m.prop2(x => expr, v => a[i] = v) }),
             React.createElement("output", null, `${vm.watchDisplayValues[expr] || ''}`)))),
     React.createElement("ul", { class: "watch-list" }, vm.autoWatches.map(expr => React.createElement("li", { hidden: vm.hiddenAutoWatches[expr] || !vm.watchFilter$().matches(expr) },
         React.createElement("input", { type: "checkbox", title: "Check to pin this watch", onchange: e => { if (e.target.checked) {
                 vm.addPinnedWatch(expr);
                 e.target.checked = false;
             } } }),
-        React.createElement("input", { type: "text", readonly: true, value: expr }),
+        React.createElement("input", { type: "text", readonly: true, title: expr, value: expr }),
         React.createElement("output", null, `${vm.watchDisplayValues[expr] || ''}`))))));
 var ToolsPaneConsole = new Tag().from(a => React.createElement("tools-pane-console", { id: a.id, "is-active-pane": a.activePane$() == a.id }) // TODO
 );
