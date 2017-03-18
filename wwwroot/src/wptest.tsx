@@ -280,7 +280,7 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 			style="position:absolute;top:0;left:0;right:0;bottom:0;"
 		/>
 		<TextArea id={a.id+'Textbox'} value$={a.value$} hidden={!!s.editor} onkeydown={enableTabInTextarea} style="appearance:none;background:transparent!important;border:none!important;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;width:calc(100% - 10px);white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:black;tab-size:4;outline:none!important;" />
-		<monaco-text-editor-placeholder hidden={(console.log(a.value$().length>0), a.value$().length>0)} style="appearance:none;background:transparent;border:none;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:silver;pointer-events:none;">{(
+		<monaco-text-editor-placeholder hidden={a.value$().length>0} style="appearance:none;background:transparent;border:none;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:silver;pointer-events:none;">{(
 			{
 				'javascript': '//<head>\n// HEAD CODE GOES HERE\n//</head>\n//\n// BODY CODE GOES HERE',
 				'html': '<!--<table>\n    <tr>\n        <td>HTML CODE</td>\n        <td>GOES HERE</td>\n    </tr>\n</table>-->',
@@ -326,7 +326,7 @@ var ToolsPaneWatches = new Tag <{ id:string, activePane$:Prop<string> }> ().from
 		{tm.watches.map((expr,i,a) => 
 			<li>
 				<input type="checkbox" checked title="Uncheck to delete this watch" onchange={e=>{if(!e.target.checked) { vm.removePinnedWatch(expr); e.target.checked=true; }}} />
-				<Input type="text" value$={m.prop2(x => expr, v => a[i]=v)} />
+				<Input type="text" title={expr} value$={m.prop2(x => expr, v => a[i]=v)} />
 				<output>{`${vm.watchDisplayValues[expr]||''}`}</output>
 			</li>
 		)}
@@ -334,7 +334,7 @@ var ToolsPaneWatches = new Tag <{ id:string, activePane$:Prop<string> }> ().from
 		<ul class="watch-list">{vm.autoWatches.map(expr => 
 			<li hidden={vm.hiddenAutoWatches[expr]||!vm.watchFilter$().matches(expr)}>
 				<input type="checkbox" title="Check to pin this watch" onchange={e=>{if(e.target.checked) { vm.addPinnedWatch(expr); e.target.checked=false; }}} />
-				<input type="text" readonly value={expr} />
+				<input type="text" readonly title={expr} value={expr} />
 				<output>{`${vm.watchDisplayValues[expr]||''}`}</output>
 			</li>
 		)}</ul>
