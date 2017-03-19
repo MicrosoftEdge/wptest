@@ -58,6 +58,29 @@ var tm = m.addProps<TestDataModel,TestModel>(tmData);
 class ViewModel {
 
 	// ===================================================
+	// github state (readonly)
+	// ===================================================
+
+	githubUserData$ = cachedCast(() => document.cookie, cookie => {
+		// read data from the user cookie (and trust it)
+		var userCookie = decodeURIComponent(document.cookie.replace(new RegExp("(?:(?:^|.*;)\\s*" + encodeURIComponent('user').replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=\\s*([^;]*).*$)|^.*$"), "$1")) || 'null'
+		// parse that data into an object
+		var user = null; try { user = JSON.parse(userCookie.substr(2,userCookie.length - 46)); } catch (ex) {};
+		// return the result
+		return user as {
+			id: string | number,
+			username: string,
+			email: string,
+			[propertyName: string]: any
+		}
+	})
+
+	githubIsConnected$ = cachedCast(this.githubUserData$, user => !!user)
+	githubUserName$ = cachedCast(this.githubUserData$, user => user ? user.username : "anonymous")
+	githubUserId$ = cachedCast(this.githubUserData$, user => user ? user.id : null)
+	githubUserEmail$ = cachedCast(this.githubUserData$, user => user ? user.email : null)
+
+	// ===================================================
 	// editor settings
 	// ===================================================
 	
@@ -411,6 +434,7 @@ class ViewModel {
 			id += idLetters[Math.floor(Math.random() * idLetters.length)];
 		}
 
+		sessionStorage.setItem('local:latest', 'local:' + id);
 		localStorage.setItem('local:' + id, JSON.stringify(data));
 		location.hash = "#/local:" + id;
 
@@ -426,9 +450,16 @@ class ViewModel {
 				// do nothing
 			}
 		}
+		// ensure the user is connected
+		if(!this.githubIsConnected$()) {
+			this.saveLocally();
+			alert(`You are about to be redirected to the login page. Your current work has been saved locally with id ${sessionStorage.getItem('local:latest')}, and will be recovered after you log in.`);
+			location.href = '/login/github/start';
+			return;
+		}
 		// upload the testcase data
 		var data = tmData;
-		fetch('/new/testcase/', { 
+		fetch('/new/testcase/', {
 			method: 'POST', 
 			body: JSON.stringify(data),
 			credentials: "same-origin"
@@ -448,6 +479,9 @@ class ViewModel {
 
 			})
 
+		}).catch(ex => {
+			console.error(ex);
+			alert("Oops, something went wrong... Try again or save locally by pressing ALT when you click on the save button.");
 		});
 	}
 

@@ -11,7 +11,7 @@ var app = express();
 
 // settings
 var CFG = {
-	MONGO_URL: 'mongodb://localhost:27017/myproject',
+	MONGO_URL: 'mongodb://localhost:27017/wptest',
 	CURRENT_HOST: 'http://localhost:3000',
 	COOKIE_SECRET: 'UNSECURE_DEFAULT_SECRET',
 	GITHUB_CLIENT_ID: '63cc96eaf4ce8b5e9c42',
@@ -102,7 +102,7 @@ app.use(passport.session());
 app.get('/login/github/start', passport.authenticate('github'));
 app.get('/login/github/end', passport.authenticate('github', { failureRedirect: '/login/error' }), function(req, res) {
 	res.cookie('user', JSON.stringify(req.user), { signed: true, maxAge: CFG.LOGIN_MAX_AGE })
-	res.status(200).send(JSON.stringify(req.user));
+	res.redirect('/#/local:latest');
 });
 
 function getConnectedUser(req) {
