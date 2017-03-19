@@ -419,6 +419,26 @@ var tm = m.addProps(tmData);
 class ViewModel {
     constructor() {
         // ===================================================
+        // github state (readonly)
+        // ===================================================
+        this.githubUserData$ = cachedCast(() => document.cookie, cookie => {
+            // read data from the user cookie (and trust it)
+            var userCookie = decodeURIComponent(document.cookie.replace(new RegExp("(?:(?:^|.*;)\\s*" + encodeURIComponent('user').replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=\\s*([^;]*).*$)|^.*$"), "$1")) || 'null';
+            // parse that data into an object
+            var user = null;
+            try {
+                user = JSON.parse(userCookie.substr(2, userCookie.length - 46));
+            }
+            catch (ex) { }
+            ;
+            // return the result
+            return user;
+        });
+        this.githubIsConnected$ = cachedCast(this.githubUserData$, user => !!user);
+        this.githubUserName$ = cachedCast(this.githubUserData$, user => user ? user.username : "anonymous");
+        this.githubUserId$ = cachedCast(this.githubUserData$, user => user ? user.id : null);
+        this.githubUserEmail$ = cachedCast(this.githubUserData$, user => user ? user.email : null);
+        // ===================================================
         // editor settings
         // ===================================================
         /** The id of the currently edited test */
@@ -723,6 +743,7 @@ class ViewModel {
         for (var i = 5; i--;) {
             id += idLetters[Math.floor(Math.random() * idLetters.length)];
         }
+        sessionStorage.setItem('local:latest', 'local:' + id);
         localStorage.setItem('local:' + id, JSON.stringify(data));
         location.hash = "#/local:" + id;
     }
@@ -736,6 +757,13 @@ class ViewModel {
             catch (ex) {
                 // do nothing
             }
+        }
+        // ensure the user is connected
+        if (!this.githubIsConnected$()) {
+            this.saveLocally();
+            alert(`You are about to be redirected to the login page. Your current work has been saved locally with id ${sessionStorage.getItem('local:latest')}, and will be recovered after you log in.`);
+            location.href = '/login/github/start';
+            return;
         }
         // upload the testcase data
         var data = tmData;
@@ -753,6 +781,9 @@ class ViewModel {
                 // remove suspender
                 redraw();
             });
+        }).catch(ex => {
+            console.error(ex);
+            alert("Oops, something went wrong... Try again or save locally by pressing ALT when you click on the save button.");
         });
     }
     /** Resets the test model based on new data */
@@ -1317,7 +1348,19 @@ var TestEditorView = new Tag().from(a => {
     if (a.id != vm.currentTestId$() && a.id == location.hash.substr(2)) {
         vm.currentTestId$(a.id);
         if (a.id.indexOf('local:') == 0) {
-            vm.openFromJSON(JSON.parse(localStorage.getItem(a.id)));
+            var id = a.id;
+            if (sessionStorage.getItem(id)) {
+                id = sessionStorage.getItem(id);
+            }
+            vm.openFromJSON(JSON.parse(localStorage.getItem(id)));
+            // when we recover the local:latest test, we should offer to save online
+            if (a.id == 'local:latest' && vm.githubIsConnected$()) {
+                setTimeout(function () {
+                    if (confirm(`Welcome back, ${vm.githubUserName$()}! Should we save your test online now?`)) {
+                        vm.saveOnline();
+                    }
+                }, 32);
+            }
         }
         else if (a.id && a.id != 'new') {
             vm.isLoading$(true);
