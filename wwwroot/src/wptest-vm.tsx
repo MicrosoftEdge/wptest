@@ -353,7 +353,7 @@ class ViewModel {
 			setTimeout(x => this.run(), 100);
 			return;
 		}
-		
+
 		// remove any $ values since we are going to clear the inner document
 		var w1 = window as any;
 		var w2 = outputPane.contentWindow as any;
@@ -451,7 +451,7 @@ class ViewModel {
 			id += idLetters[Math.floor(Math.random() * idLetters.length)];
 		}
 
-		sessionStorage.setItem('local:latest', 'local:' + id);
+		sessionStorage.setItem('local:save', 'local:' + id);
 		localStorage.setItem('local:' + id, JSON.stringify(data));
 		location.hash = "#/local:" + id;
 
@@ -470,7 +470,7 @@ class ViewModel {
 		// ensure the user is connected
 		if(!this.githubIsConnected$()) {
 			this.saveLocally();
-			alert(`You are about to be redirected to the login page. Your current work has been saved locally with id ${sessionStorage.getItem('local:latest')}, and will be recovered after you log in.`);
+			alert(`You are about to be redirected to the login page. Your current work has been saved locally with id ${sessionStorage.getItem('local:save')}, and will be recovered after you log in.`);
 			this.settingsDialog.logIn();
 			return;
 		}
@@ -482,6 +482,7 @@ class ViewModel {
 			credentials: "same-origin"
 		}).then(r => r.json()).then(o => {
 
+			sessionStorage.removeItem('local:save');
 			suspendRedrawsOn(redraw => {
 				
 				// update the data
