@@ -299,7 +299,24 @@ class ViewModel {
 	// watch replacement dialog
 	// ===================================================
 	
-	selectorGenerationDialog = new SelectorGenerationDialogViewModel()
+	selectorGenerationDialog = new SelectorGenerationDialogViewModel(this)
+
+	// ===================================================
+	// settings dialog
+	// ===================================================
+	
+	settingsDialog = new SettingsDialogViewModel(this)
+
+	/** Removes the user cookie */
+	logOut() {
+		document.cookie = 'user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+		redrawIfReady();
+	}
+
+	/** Redirects to the login page */
+	logIn() {
+		location.href = '/login/github/start';
+	}
 	
 
 	// ===================================================
@@ -454,7 +471,7 @@ class ViewModel {
 		if(!this.githubIsConnected$()) {
 			this.saveLocally();
 			alert(`You are about to be redirected to the login page. Your current work has been saved locally with id ${sessionStorage.getItem('local:latest')}, and will be recovered after you log in.`);
-			location.href = '/login/github/start';
+			this.settingsDialog.logIn();
 			return;
 		}
 		// upload the testcase data
@@ -600,6 +617,12 @@ promise_test(
 
 class SelectorGenerationDialogViewModel {
 
+	/** The attached view model */
+	vm = null as ViewModel;
+	constructor(vm: ViewModel) {
+		this.vm = vm;
+	}
+
 	/** Whether the dialog is opened or closed */
 	isOpened$ = m.prop(false)
 
@@ -623,6 +646,35 @@ class SelectorGenerationDialogViewModel {
 
 	/** The selector the user typed in the text box (selector mode) */
 	chosenSelector$ = m.prop("")
+
+}
+
+class SettingsDialogViewModel {
+
+	/** The attached view model */
+	vm = null as ViewModel;
+	constructor(vm: ViewModel) {
+		this.vm = vm;
+	}
+
+	/** Whether the dialog is opened or closed */
+	isOpened$ = m.prop(false)
+
+	/** Whether to use Monaco on this device or not */
+	useMonaco$ = m.prop2(
+		(v) => !localStorage.getItem('noMonaco'),
+		(v) => localStorage.setItem('noMonaco', v?'':'true')
+	);
+
+	/** Ask the viewmodel to log the user out */
+	logOut() {
+		this.vm.logOut();
+	}
+
+	/** Ask the viewmodel to log a user in */
+	logIn() {
+		this.vm.logIn();
+	}
 
 }
 

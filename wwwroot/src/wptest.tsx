@@ -21,6 +21,7 @@ var BodyToolbar = new Tag <{ model:TestModel }> ().from(a =>
 		<button onclick={e=>vm.run()} title="Move your code to the iframe">Run</button>
 		<button onclick={e=>{if(e.altKey) { vm.saveLocally() } else { vm.saveOnline() }}} title="Save online, or locally if you maintain Alt pressed">Save</button>
 		<button onclick={e=>vm.saveToFile()} title="Download as a weplatform test case">Export</button>
+		<button onclick={e=>vm.settingsDialog.isOpened$(true)} title="Open the settings dialog">⋅⋅⋅</button>
 		<hr style="visibility: hidden; flex:1 0 0;" />
 		<Input value$={a.model.title$} title="Title of your test case" />
 	</body-toolbar>
@@ -37,6 +38,7 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 			this.isDirty = false;
 
 			// wait for monaco to load if needed
+			if(localStorage.getItem('noMonaco')) return;
 			require(['vs/editor/editor.main'], then => {
 				
 				// create the text editor, and save it in the state
@@ -534,7 +536,7 @@ var SelectorGenerationDialog = new Tag().with({
 		}
 	}
 }).from((a,s,self) => 
-	<dialog as="selector-generation-dialog" hidden={!vm.selectorGenerationDialog.isOpened$()}>
+	<dialog as="selector-generation-dialog" autofocus hidden={!vm.selectorGenerationDialog.isOpened$()}>
 
 		<section tabindex="-1">
 			<h1>How do you want to do this?</h1>
@@ -555,6 +557,40 @@ var SelectorGenerationDialog = new Tag().with({
 				</label>
 				<input type="submit" value="OK" />
 				<input type="button" value="Cancel" onclick={e=>vm.selectorGenerationDialog.isOpened$(false)} />
+			</form>
+		</section>
+
+	</dialog>
+)
+
+var SettingsDialog = new Tag().with({
+	close() {
+		var form = vm.settingsDialog;
+		form.isOpened$(false);
+	}
+}).from((a,s,self) => 
+	<dialog as="settings-generation-dialog" autofocus hidden={!vm.settingsDialog.isOpened$()}>
+
+		<section tabindex="-1">
+			<h1>Settings</h1>
+			<form action="POST" onsubmit={e => { e.preventDefault(); self.close(); }}>
+				<label style="display: block; margin-bottom: 10px">
+					<button hidden={vm.githubIsConnected$()} onclick={e => vm.settingsDialog.logIn()}>
+						Log In using your Github account
+					</button>
+					<button hidden={!vm.githubIsConnected$()} onclick={e => vm.settingsDialog.logOut()}>
+						Log Out of your Github account ({vm.githubUserName$()})
+					</button>
+				</label>
+				<label style="display: block; margin-bottom: 10px">
+					<button hidden={!vm.settingsDialog.useMonaco$()} onclick={e => vm.settingsDialog.useMonaco$(false)} style="display: block">
+						Disable the advanced text editor on this device from now on
+					</button>
+					<button hidden={vm.settingsDialog.useMonaco$()} onclick={e => vm.settingsDialog.useMonaco$(true)} style="display: block">
+						Enable the advanced text editor on this device from now on
+					</button>
+				</label>
+				<input type="submit" value="Close" style="margin-top: 10px" />
 			</form>
 		</section>
 
@@ -602,6 +638,7 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 			</bottom-row>
 
 			<SelectorGenerationDialog />
+			<SettingsDialog />
 
 		</body>
 	).children;
