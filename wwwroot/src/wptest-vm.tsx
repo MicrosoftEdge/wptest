@@ -440,6 +440,11 @@ class ViewModel {
 		}
 	}
 
+	/** Saves the test in a json url */
+	saveInUrl() {
+		location.hash = "#/json:" + JSON.stringify(tmData);
+	}
+
 	/** Saves the test model in the localStorage */
 	saveLocally() {
 		

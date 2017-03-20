@@ -19,7 +19,7 @@ var TextArea = new Tag <{ value$:Prop<string> } & JSX.IntrinsicElement> ().from(
 var BodyToolbar = new Tag <{ model:TestModel }> ().from(a =>
 	<body-toolbar row role="toolbar">
 		<button onclick={e=>vm.run()} title="Move your code to the iframe">Run</button>
-		<button onclick={e=>{if(e.altKey) { vm.saveLocally() } else { vm.saveOnline() }}} title="Save online, or locally if you maintain Alt pressed">Save</button>
+		<button onclick={e=>{if(e.shiftKey) { vm.saveInUrl() } else if(e.altKey) { vm.saveLocally() } else { vm.saveOnline() }}} title="Save your test online (Shift: url, Alt: local storage)">Save</button>
 		<button onclick={e=>vm.saveToFile()} title="Download as a weplatform test case">Export</button>
 		<button onclick={e=>vm.settingsDialog.isOpened$(true)} title="Open the settings dialog">⋅⋅⋅</button>
 		<hr style="visibility: hidden; flex:1 0 0;" />
@@ -608,12 +608,15 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 	if(a.id != vm.currentTestId$() && a.id == location.hash.substr(2)) {
 		vm.currentTestId$(a.id);
 		if(a.id.indexOf('local:') == 0) {
+
+			// local tests are loaded from localStorage
 			var id = a.id; if(sessionStorage.getItem(id)) { 
 				id = sessionStorage.getItem(id);
 				vm.currentTestId$(id);
 				vm.updateURL();
 			}
 			vm.openFromJSON(JSON.parse(localStorage.getItem(id)));
+
 			// when we recover the local:save test, we should offer to save online
 			if(a.id=='local:save' && vm.githubIsConnected$()) {
 				setTimeout(function() {
@@ -622,12 +625,19 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 					}
 				}, 32);
 			}
+
+		} else if(a.id.indexOf('json:') == 0) {
+
+			vm.openFromJSON(JSON.parse(decodeURIComponent(a.id.substr('json:'.length))));
+
 		} else if(a.id && a.id != 'new') {
+
 			vm.isLoading$(true);
 			vm.openFromJSON(null);
 			fetch('/uploads/' + a.id + '.json').then(r => r.json()).then(d => {
 				vm.openFromJSON(d);
 			});
+
 		}
 	}
 	// in all cases, we return the same markup though to avoid trashing
