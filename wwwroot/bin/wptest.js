@@ -748,6 +748,10 @@ class ViewModel {
             }
         }
     }
+    /** Saves the test in a json url */
+    saveInUrl() {
+        location.hash = "#/json:" + JSON.stringify(tmData);
+    }
     /** Saves the test model in the localStorage */
     saveLocally() {
         var data = tmData;
@@ -943,12 +947,15 @@ var InputRadio = new Tag().from(a => React.createElement("input", Object.assign(
 var TextArea = new Tag().from(a => React.createElement("textarea", Object.assign({}, attributesOf(a), { oninput: bindTo(a.value$), onchange: bindTo(a.value$) }), a.value$()));
 var BodyToolbar = new Tag().from(a => React.createElement("body-toolbar", { row: true, role: "toolbar" },
     React.createElement("button", { onclick: e => vm.run(), title: "Move your code to the iframe" }, "Run"),
-    React.createElement("button", { onclick: e => { if (e.altKey) {
+    React.createElement("button", { onclick: e => { if (e.shiftKey) {
+            vm.saveInUrl();
+        }
+        else if (e.altKey) {
             vm.saveLocally();
         }
         else {
             vm.saveOnline();
-        } }, title: "Save online, or locally if you maintain Alt pressed" }, "Save"),
+        } }, title: "Save your test online (Shift: url, Alt: local storage)" }, "Save"),
     React.createElement("button", { onclick: e => vm.saveToFile(), title: "Download as a weplatform test case" }, "Export"),
     React.createElement("button", { onclick: e => vm.settingsDialog.isOpened$(true), title: "Open the settings dialog" }, "\u22C5\u22C5\u22C5"),
     React.createElement("hr", { style: "visibility: hidden; flex:1 0 0;" }),
@@ -1409,6 +1416,7 @@ var TestEditorView = new Tag().from(a => {
     if (a.id != vm.currentTestId$() && a.id == location.hash.substr(2)) {
         vm.currentTestId$(a.id);
         if (a.id.indexOf('local:') == 0) {
+            // local tests are loaded from localStorage
             var id = a.id;
             if (sessionStorage.getItem(id)) {
                 id = sessionStorage.getItem(id);
@@ -1424,6 +1432,9 @@ var TestEditorView = new Tag().from(a => {
                     }
                 }, 32);
             }
+        }
+        else if (a.id.indexOf('json:') == 0) {
+            vm.openFromJSON(JSON.parse(decodeURIComponent(a.id.substr('json:'.length))));
         }
         else if (a.id && a.id != 'new') {
             vm.isLoading$(true);
