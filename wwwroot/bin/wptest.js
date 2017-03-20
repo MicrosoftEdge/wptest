@@ -756,7 +756,7 @@ class ViewModel {
         for (var i = 5; i--;) {
             id += idLetters[Math.floor(Math.random() * idLetters.length)];
         }
-        sessionStorage.setItem('local:latest', 'local:' + id);
+        sessionStorage.setItem('local:save', 'local:' + id);
         localStorage.setItem('local:' + id, JSON.stringify(data));
         location.hash = "#/local:" + id;
     }
@@ -774,7 +774,7 @@ class ViewModel {
         // ensure the user is connected
         if (!this.githubIsConnected$()) {
             this.saveLocally();
-            alert(`You are about to be redirected to the login page. Your current work has been saved locally with id ${sessionStorage.getItem('local:latest')}, and will be recovered after you log in.`);
+            alert(`You are about to be redirected to the login page. Your current work has been saved locally with id ${sessionStorage.getItem('local:save')}, and will be recovered after you log in.`);
             this.settingsDialog.logIn();
             return;
         }
@@ -785,6 +785,7 @@ class ViewModel {
             body: JSON.stringify(data),
             credentials: "same-origin"
         }).then(r => r.json()).then(o => {
+            sessionStorage.removeItem('local:save');
             suspendRedrawsOn(redraw => {
                 // update the data
                 this.currentTestId$(o.id);
@@ -1373,13 +1374,15 @@ var SelectorGenerationDialog = new Tag().with({
             React.createElement("label", { style: "display: block; margin-bottom: 10px" },
                 React.createElement(InputRadio, { name: "chosenMode", value: "id", "checkedValue$": vm.selectorGenerationDialog.chosenMode$ }),
                 "Assign an id the the element",
-                React.createElement(Input, { "value$": vm.selectorGenerationDialog.chosenId$, onfocus: e => vm.selectorGenerationDialog.chosenMode$('id') })),
+                React.createElement(Input, { type: "text", "value$": vm.selectorGenerationDialog.chosenId$, onfocus: e => vm.selectorGenerationDialog.chosenMode$('id') })),
             React.createElement("label", { style: "display: block; margin-bottom: 10px" },
                 React.createElement(InputRadio, { name: "chosenMode", value: "selector", "checkedValue$": vm.selectorGenerationDialog.chosenMode$ }),
                 "Use a css selector",
-                React.createElement(Input, { "value$": vm.selectorGenerationDialog.chosenSelector$, onfocus: e => vm.selectorGenerationDialog.chosenMode$('selector') })),
-            React.createElement("input", { type: "submit", value: "OK" }),
-            React.createElement("input", { type: "button", value: "Cancel", onclick: e => vm.selectorGenerationDialog.isOpened$(false) })))));
+                React.createElement(Input, { type: "text", "value$": vm.selectorGenerationDialog.chosenSelector$, onfocus: e => vm.selectorGenerationDialog.chosenMode$('selector') })),
+            React.createElement("footer", { style: "margin-top: 20px" },
+                React.createElement("input", { type: "submit", value: "OK" }),
+                "\u00A0",
+                React.createElement("input", { type: "button", value: "Cancel", onclick: e => vm.selectorGenerationDialog.isOpened$(false) }))))));
 var SettingsDialog = new Tag().with({
     close() {
         var form = vm.settingsDialog;
@@ -1398,7 +1401,8 @@ var SettingsDialog = new Tag().with({
             React.createElement("label", { style: "display: block; margin-bottom: 10px" },
                 React.createElement("button", { hidden: !vm.settingsDialog.useMonaco$(), onclick: e => vm.settingsDialog.useMonaco$(false), style: "display: block" }, "Disable the advanced text editor on this device from now on"),
                 React.createElement("button", { hidden: vm.settingsDialog.useMonaco$(), onclick: e => vm.settingsDialog.useMonaco$(true), style: "display: block" }, "Enable the advanced text editor on this device from now on")),
-            React.createElement("input", { type: "submit", value: "Close", style: "margin-top: 10px" })))));
+            React.createElement("footer", { style: "margin-top: 20px" },
+                React.createElement("input", { type: "submit", value: "Close" }))))));
 var TestEditorView = new Tag().from(a => {
     // if the page moved to a new id 
     // then we need to reset all data and download the new test
@@ -1408,10 +1412,12 @@ var TestEditorView = new Tag().from(a => {
             var id = a.id;
             if (sessionStorage.getItem(id)) {
                 id = sessionStorage.getItem(id);
+                vm.currentTestId$(id);
+                vm.updateURL();
             }
             vm.openFromJSON(JSON.parse(localStorage.getItem(id)));
-            // when we recover the local:latest test, we should offer to save online
-            if (a.id == 'local:latest' && vm.githubIsConnected$()) {
+            // when we recover the local:save test, we should offer to save online
+            if (a.id == 'local:save' && vm.githubIsConnected$()) {
                 setTimeout(function () {
                     if (confirm(`Welcome back, ${vm.githubUserName$()}! Should we save your test online now?`)) {
                         vm.saveOnline();
