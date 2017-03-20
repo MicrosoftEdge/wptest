@@ -537,7 +537,11 @@ class ViewModel {
         // ===================================================
         // watch replacement dialog
         // ===================================================
-        this.selectorGenerationDialog = new SelectorGenerationDialogViewModel();
+        this.selectorGenerationDialog = new SelectorGenerationDialogViewModel(this);
+        // ===================================================
+        // settings dialog
+        // ===================================================
+        this.settingsDialog = new SettingsDialogViewModel(this);
         // ===================================================
         // output frame settings
         // ===================================================
@@ -651,6 +655,15 @@ class ViewModel {
         }
         redrawIfReady();
     }
+    /** Removes the user cookie */
+    logOut() {
+        document.cookie = 'user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        redrawIfReady();
+    }
+    /** Redirects to the login page */
+    logIn() {
+        location.href = '/login/github/start';
+    }
     /** Refreshes the output frame with the latest source code */
     run() {
         // hide outdated element outline
@@ -762,7 +775,7 @@ class ViewModel {
         if (!this.githubIsConnected$()) {
             this.saveLocally();
             alert(`You are about to be redirected to the login page. Your current work has been saved locally with id ${sessionStorage.getItem('local:latest')}, and will be recovered after you log in.`);
-            location.href = '/login/github/start';
+            this.settingsDialog.logIn();
             return;
         }
         // upload the testcase data
@@ -880,7 +893,9 @@ promise_test(
     }
 }
 class SelectorGenerationDialogViewModel {
-    constructor() {
+    constructor(vm) {
+        /** The attached view model */
+        this.vm = null;
         /** Whether the dialog is opened or closed */
         this.isOpened$ = m.prop(false);
         /** The raw watch expression we want to pin */
@@ -897,6 +912,26 @@ class SelectorGenerationDialogViewModel {
         this.chosenId$ = m.prop("");
         /** The selector the user typed in the text box (selector mode) */
         this.chosenSelector$ = m.prop("");
+        this.vm = vm;
+    }
+}
+class SettingsDialogViewModel {
+    constructor(vm) {
+        /** The attached view model */
+        this.vm = null;
+        /** Whether the dialog is opened or closed */
+        this.isOpened$ = m.prop(false);
+        /** Whether to use Monaco on this device or not */
+        this.useMonaco$ = m.prop2((v) => !localStorage.getItem('noMonaco'), (v) => localStorage.setItem('noMonaco', v ? '' : 'true'));
+        this.vm = vm;
+    }
+    /** Ask the viewmodel to log the user out */
+    logOut() {
+        this.vm.logOut();
+    }
+    /** Ask the viewmodel to log a user in */
+    logIn() {
+        this.vm.logIn();
     }
 }
 var vm = new ViewModel();
@@ -914,6 +949,7 @@ var BodyToolbar = new Tag().from(a => React.createElement("body-toolbar", { row:
             vm.saveOnline();
         } }, title: "Save online, or locally if you maintain Alt pressed" }, "Save"),
     React.createElement("button", { onclick: e => vm.saveToFile(), title: "Download as a weplatform test case" }, "Export"),
+    React.createElement("button", { onclick: e => vm.settingsDialog.isOpened$(true), title: "Open the settings dialog" }, "\u22C5\u22C5\u22C5"),
     React.createElement("hr", { style: "visibility: hidden; flex:1 0 0;" }),
     React.createElement(Input, { "value$": a.model.title$, title: "Title of your test case" })));
 var MonacoTextEditor = new Tag().with({
@@ -923,6 +959,8 @@ var MonacoTextEditor = new Tag().with({
         this.value = node.attrs.value$();
         this.isDirty = false;
         // wait for monaco to load if needed
+        if (localStorage.getItem('noMonaco'))
+            return;
         require(['vs/editor/editor.main'], then => {
             // create the text editor, and save it in the state
             this.value = node.attrs.value$();
@@ -1325,7 +1363,7 @@ var SelectorGenerationDialog = new Tag().with({
             vm.addPinnedWatch(form.watchExpression$());
         }
     }
-}).from((a, s, self) => React.createElement("dialog", { as: "selector-generation-dialog", hidden: !vm.selectorGenerationDialog.isOpened$() },
+}).from((a, s, self) => React.createElement("dialog", { as: "selector-generation-dialog", autofocus: true, hidden: !vm.selectorGenerationDialog.isOpened$() },
     React.createElement("section", { tabindex: "-1" },
         React.createElement("h1", null, "How do you want to do this?"),
         React.createElement("form", { action: "POST", onsubmit: e => { e.preventDefault(); self.generateReplacement(); } },
@@ -1342,6 +1380,25 @@ var SelectorGenerationDialog = new Tag().with({
                 React.createElement(Input, { "value$": vm.selectorGenerationDialog.chosenSelector$, onfocus: e => vm.selectorGenerationDialog.chosenMode$('selector') })),
             React.createElement("input", { type: "submit", value: "OK" }),
             React.createElement("input", { type: "button", value: "Cancel", onclick: e => vm.selectorGenerationDialog.isOpened$(false) })))));
+var SettingsDialog = new Tag().with({
+    close() {
+        var form = vm.settingsDialog;
+        form.isOpened$(false);
+    }
+}).from((a, s, self) => React.createElement("dialog", { as: "settings-generation-dialog", autofocus: true, hidden: !vm.settingsDialog.isOpened$() },
+    React.createElement("section", { tabindex: "-1" },
+        React.createElement("h1", null, "Settings"),
+        React.createElement("form", { action: "POST", onsubmit: e => { e.preventDefault(); self.close(); } },
+            React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                React.createElement("button", { hidden: vm.githubIsConnected$(), onclick: e => vm.settingsDialog.logIn() }, "Log In using your Github account"),
+                React.createElement("button", { hidden: !vm.githubIsConnected$(), onclick: e => vm.settingsDialog.logOut() },
+                    "Log Out of your Github account (",
+                    vm.githubUserName$(),
+                    ")")),
+            React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                React.createElement("button", { hidden: !vm.settingsDialog.useMonaco$(), onclick: e => vm.settingsDialog.useMonaco$(false), style: "display: block" }, "Disable the advanced text editor on this device from now on"),
+                React.createElement("button", { hidden: vm.settingsDialog.useMonaco$(), onclick: e => vm.settingsDialog.useMonaco$(true), style: "display: block" }, "Enable the advanced text editor on this device from now on")),
+            React.createElement("input", { type: "submit", value: "Close", style: "margin-top: 10px" })))));
 var TestEditorView = new Tag().from(a => {
     // if the page moved to a new id 
     // then we need to reset all data and download the new test
@@ -1380,7 +1437,8 @@ var TestEditorView = new Tag().from(a => {
         React.createElement("bottom-row", { row: true },
             React.createElement(OutputPane, null),
             React.createElement(ToolsPane, null)),
-        React.createElement(SelectorGenerationDialog, null))).children;
+        React.createElement(SelectorGenerationDialog, null),
+        React.createElement(SettingsDialog, null))).children;
 });
 m.route(document.body, '/new', { '/:id': TestEditorView() });
 //----------------------------------------------------------------
