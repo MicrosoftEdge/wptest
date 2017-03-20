@@ -548,15 +548,18 @@ var SelectorGenerationDialog = new Tag().with({
 				<label style="display: block; margin-bottom: 10px">
 					<InputRadio name="chosenMode" value="id" checkedValue$={vm.selectorGenerationDialog.chosenMode$} />
 					Assign an id the the element
-					<Input value$={vm.selectorGenerationDialog.chosenId$} onfocus={e=>vm.selectorGenerationDialog.chosenMode$('id')} />
+					<Input type="text" value$={vm.selectorGenerationDialog.chosenId$} onfocus={e=>vm.selectorGenerationDialog.chosenMode$('id')} />
 				</label>
 				<label style="display: block; margin-bottom: 10px">
 					<InputRadio name="chosenMode" value="selector" checkedValue$={vm.selectorGenerationDialog.chosenMode$} />
 					Use a css selector
-					<Input value$={vm.selectorGenerationDialog.chosenSelector$} onfocus={e=>vm.selectorGenerationDialog.chosenMode$('selector')} />
+					<Input type="text" value$={vm.selectorGenerationDialog.chosenSelector$} onfocus={e=>vm.selectorGenerationDialog.chosenMode$('selector')} />
 				</label>
-				<input type="submit" value="OK" />
-				<input type="button" value="Cancel" onclick={e=>vm.selectorGenerationDialog.isOpened$(false)} />
+				<footer style="margin-top: 20px">
+					<input type="submit" value="OK" />
+					&nbsp;
+					<input type="button" value="Cancel" onclick={e=>vm.selectorGenerationDialog.isOpened$(false)} />
+				</footer>
 			</form>
 		</section>
 
@@ -590,7 +593,9 @@ var SettingsDialog = new Tag().with({
 						Enable the advanced text editor on this device from now on
 					</button>
 				</label>
-				<input type="submit" value="Close" style="margin-top: 10px" />
+				<footer style="margin-top: 20px">
+					<input type="submit" value="Close" />
+				</footer>
 			</form>
 		</section>
 

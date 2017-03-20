@@ -31,16 +31,14 @@ body > top-row > *, body > bottom-row > * {
 
 	body > dialog { 
 		background: rgba(0,0,0,0.7);
-		display: -ms-grid; -ms-grid-row: 1; -ms-grid-column: 1; -ms-grid-row-span: 3; -ms-grid-column-span: 2; -ms-grid-columns: 1fr; -ms-grid-rows: 1fr;
-		display: grid; grid-row: 1 / span 3; grid-column: 1 / span 2; 
+		display: flex;
 		width: 100vw; height: 100vh;
 		position: absolute;
 		z-index: 10000;
 		font-family: "Segoe UI", sans-serif;
 	}
 	body > dialog > section {
-		-ms-grid-row-align: center;
-		-ms-grid-column-align: center;
+		margin: auto;
 		align-self: center;
 		justify-self: center;
 		background: white;
@@ -73,6 +71,14 @@ body > top-row > *, body > bottom-row > * {
 	}
 
 /* } */
+
+input[type="text"][of="selector-generation-dialog"] {
+	display: block;
+    margin-left: 20px;
+    width: 350px;
+    max-width: 80vw;
+	margin-top: 5px;
+}
 
 tools-pane {
 	display: flex;
