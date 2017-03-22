@@ -18,6 +18,68 @@ var rAF = window.requestAnimationFrame.bind(window);
 var describe = function (elm) {
     return elm.nodeName + (elm.id ? `#${elm.id}` : '') + (elm.classList.length ? `.${elm.classList[0]}` : '');
 };
+var convertObjectToDescription = function (arg) {
+    if (arg === null)
+        return "null";
+    if (arg === undefined)
+        return "undefined";
+    if (arg instanceof String)
+        return arg; // only string objects can get through
+    if (typeof arg == "number") {
+        if (Number.isNaN(arg))
+            return "Number.NaN";
+        if (!Number.isFinite(arg) && arg >= 0)
+            return "Number.POSITIVE_INFINITY";
+        if (!Number.isFinite(arg) && arg <= 0)
+            return "Number.NEGATIVE_INFINITY";
+        return JSON.stringify(arg);
+    }
+    if (typeof arg == 'function') {
+        try {
+            return `${arg}`;
+        }
+        catch (ex) { }
+        return '[object Function]';
+    }
+    var tag = '', str = '', jsn = '';
+    try {
+        tag = Object.prototype.toString.call(arg);
+    }
+    catch (ex) { }
+    ;
+    try {
+        str = `${arg}`;
+    }
+    catch (ex) { }
+    try {
+        jsn = JSON.stringify(arg);
+    }
+    catch (ex) { }
+    if (str == tag) {
+        str = '';
+    }
+    if (tag == '[object Object]')
+        tag = '';
+    if (arg.cloneNode && 'outerHTML' in arg) {
+        try {
+            return arg.cloneNode(false).outerHTML + ' ' + jsn;
+        }
+        catch (ex) { }
+    }
+    if (tag && (typeof (arg) == 'object' || typeof (arg) == 'symbol')) {
+        try {
+            return [tag, str, jsn].filter(x => x).join(' ');
+        }
+        catch (ex) { }
+    }
+    if (jsn)
+        return jsn;
+    if (str)
+        return str;
+    if (tag)
+        return tag;
+    return "[object]";
+};
 var buildSelectorFor = function (elm) {
     var isValidPair = (selector, elm) => {
         var matches = elm.ownerDocument.querySelectorAll(selector);
@@ -382,6 +444,29 @@ function attributesOf(a) {
 ///
 /// <reference path="lib/wptest-framework.tsx" />
 /// <reference path="lib/model.d.ts" />
+function appendToConsole(logo, content) {
+    var jsPaneConsoleOutput = window.jsPaneConsoleOutput;
+    if (jsPaneConsoleOutput) {
+        var textContent = convertObjectToDescription(content);
+        var logoSpan = document.createElement("span");
+        {
+            logoSpan.textContent = `${logo} `;
+        }
+        var contentSpan = document.createElement("span");
+        {
+            contentSpan.textContent = textContent;
+        }
+        var entry = document.createElement("div");
+        {
+            entry.title = textContent;
+            entry.appendChild(logoSpan);
+            entry.appendChild(contentSpan);
+            entry.setAttribute('data-logo', logo);
+        }
+        jsPaneConsoleOutput.appendChild(entry);
+        jsPaneConsoleOutput.scrollTop = jsPaneConsoleOutput.scrollHeight;
+    }
+}
 /** Converts the javascript code of watches to standard javascript */
 function expandShorthandsIn(jsCode) {
     return (jsCode
@@ -669,6 +754,9 @@ class ViewModel {
         // hide outdated element outline
         this.isPicking$(false);
         this.selectedElement$(null);
+        if (window.jsPaneConsoleOutput) {
+            window.jsPaneConsoleOutput.innerHTML = '';
+        }
         // bail out if we don't have loaded yet
         if (!("outputPane" in window)) {
             setTimeout(x => this.run(), 100);
@@ -692,9 +780,29 @@ class ViewModel {
         d.open();
         d.write("<!doctype html>");
         // prepare the console hooks
+        outputPane.contentWindow.console.debug = function (...args) {
+            args.forEach(arg => appendToConsole('-', arg));
+            console.debug.apply(console, args);
+        };
         outputPane.contentWindow.console.log = function (...args) {
-            args.forEach(arg => jsPaneConsole.innerText += `${arg}\n`); // TODO: fix unsafe here
+            args.forEach(arg => appendToConsole('-', arg));
             console.log.apply(console, args);
+        };
+        outputPane.contentWindow.console.dir = function (...args) {
+            args.forEach(arg => appendToConsole('-', arg));
+            console.dir.apply(console, args);
+        };
+        outputPane.contentWindow.console.info = function (...args) {
+            args.forEach(arg => appendToConsole('i', arg));
+            console.info.apply(console, args);
+        };
+        outputPane.contentWindow.console.warn = function (...args) {
+            args.forEach(arg => appendToConsole('!', arg));
+            console.warn.apply(console, args);
+        };
+        outputPane.contentWindow.console.error = function (...args) {
+            args.forEach(arg => appendToConsole('‼️', arg));
+            console.error.apply(console, args);
         };
         // write the document content
         d.write("<title>" + tm.title.replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</title>");
@@ -750,7 +858,10 @@ class ViewModel {
     }
     /** Saves the test in a json url */
     saveInUrl() {
-        location.hash = "#/json:" + JSON.stringify(tmData);
+        suspendRedrawsOn(redraw => {
+            location.hash = "#/json:" + JSON.stringify(tmData);
+            vm.currentTestId$(location.hash.substr(2));
+        });
     }
     /** Saves the test model in the localStorage */
     saveLocally() {
@@ -1160,6 +1271,7 @@ var MonacoTextEditor = new Tag().with({
         else if (this.isDirty) {
             // there was a content update
             theNewValue$(this.value = this.editor.getValue());
+            requestAnimationFrame(time => m.redraw());
         }
         else {
             // no update
@@ -1231,8 +1343,63 @@ var ToolsPaneWatches = new Tag().from(a => React.createElement("tools-pane-watch
             } } }),
         React.createElement("input", { type: "text", readonly: true, title: expr, value: expr }),
         React.createElement("output", null, `${vm.watchDisplayValues[expr] || ''}`))))));
-var ToolsPaneConsole = new Tag().from(a => React.createElement("tools-pane-console", { id: a.id, "is-active-pane": a.activePane$() == a.id }) // TODO
-);
+var ToolsPaneConsole = new Tag().with({
+    oncreate() {
+        this.history = [''];
+        this.historyIndex = 0;
+    },
+    onsumbit(e) {
+        try {
+            var inp = e.target.querySelector('input');
+            var expr = inp.value;
+            inp.value = '';
+            // update the expression history
+            this.history[this.history.length - 1] = expr;
+            this.historyIndex = this.history.push("") - 1;
+            // append expression to console
+            appendToConsole(">", new String(expr));
+            // evaluate expression
+            var res = undefined;
+            try {
+                res = outputPane.contentWindow.eval(expandShorthandsIn(expr));
+            }
+            catch (ex) {
+                res = ex;
+            }
+            // append result to console
+            appendToConsole("=", res);
+        }
+        catch (ex) {
+            console.error(ex);
+        }
+        finally {
+            e.preventDefault();
+            return false;
+        }
+    },
+    onkeypress(e) {
+        var inp = e.target;
+        if (e.key == 'Up' || e.key == 'ArrowUp') {
+            if (this.historyIndex > 0)
+                this.historyIndex--;
+            inp.value = this.history[this.historyIndex];
+        }
+        else if (e.key == 'Down' || e.key == 'ArrowDown') {
+            if (this.historyIndex < this.history.length - 1)
+                this.historyIndex++;
+            inp.value = this.history[this.historyIndex];
+        }
+        else if (this.historyIndex == this.history.length - 1) {
+            this.history[this.historyIndex] = inp.value;
+        }
+        else {
+            // nothing to do
+        }
+    }
+}).from((a, c, self) => React.createElement("tools-pane-console", { id: a.id, "is-active-pane": a.activePane$() == a.id },
+    React.createElement("pre", { id: a.id + "Output" }),
+    React.createElement("form", { method: "POST", onsubmit: e => self.onsumbit(e) },
+        React.createElement("input", { type: "text", onkeydown: e => self.onkeypress(e), oninput: e => self.onkeypress(e) }))));
 var ToolsPaneCode = new Tag().from(a => React.createElement("tools-pane-code", { id: a.id, "is-active-pane": a.activePane$() == a.id },
     React.createElement(MonacoTextEditor, { id: a.id + '--editor', "value$": a.value$, language: "javascript" })) // TODO
 );
@@ -1457,7 +1624,7 @@ var TestEditorView = new Tag().from(a => {
         React.createElement(SelectorGenerationDialog, null),
         React.createElement(SettingsDialog, null))).children;
 });
-m.route(document.body, '/new', { '/:id': TestEditorView() });
+m.route(document.body, '/new', { '/:id...': TestEditorView() });
 //----------------------------------------------------------------
 setInterval(updatePageTitle, 3000);
 function updatePageTitle() {
