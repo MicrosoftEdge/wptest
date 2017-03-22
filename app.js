@@ -232,6 +232,9 @@ app.post('/new/testcase', (req, res) => {
 		return;
 	}
 
+	// extend the validity of the login cookie
+	res.cookie('user', JSON.stringify(author), { signed: true, maxAge: CFG.LOGIN_MAX_AGE })
+
 	// check posted content is not empty
 	if (!req.text) {
 		res.status(400).send("BadRequest");
