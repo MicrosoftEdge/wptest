@@ -36,13 +36,23 @@ function expandShorthandsIn(jsCode: string): string {
 
 		jsCode
 
+		.replace(/^\$\$\(/g,'document.querySelectorAll(')
+		.replace(/^\$\(/g,'document.querySelector(')
+		.replace(/\b\$\$\(/g,'document.querySelectorAll(')
 		.replace(/\b\$\(/g,'document.querySelector(')
-		.replace(/\b\$\b/g,'document.querySelector.bind(document)')
-		.replace(/\b\$$\(/g,'document.querySelectorAll(')
-		.replace(/\b\$$\b/g,'document.querySelectorAll.bind(document)')
+		.replace(/(\;|\,|\(|\)|\+|\-|\*|\/|\=|\<|\>|\||\&|\\|\s)\$\$\(/g,'$1document.querySelectorAll(')
+		.replace(/(\;|\,|\(|\)|\+|\-|\*|\/|\=|\<|\>|\||\&|\\|\s)\$\(/g,'$1document.querySelector(')
+
+		.replace(/^eFP\(/g,'document.elementFromPoint(')
+		.replace(/^eFP\b/g,'document.elementFromPoint.bind(document)')
 		.replace(/\beFP\(/g,'document.elementFromPoint(')
 		.replace(/\beFP\b/g,'document.elementFromPoint.bind(document)')
 
+
+		.replace(/^gCS\(/g,'getComputedStyle(')
+		.replace(/^gCS\b/g,'getComputedStyle.bind(window)')
+		.replace(/^rAF\(/g,'requestAnimationFrame(')
+		.replace(/^rAF\b/g,'requestAnimationFrame.bind(window)')
 		.replace(/\bgCS\(/g,'getComputedStyle(')
 		.replace(/\bgCS\b/g,'getComputedStyle.bind(window)')
 		.replace(/\brAF\(/g,'requestAnimationFrame(')
@@ -55,6 +65,7 @@ function expandShorthandsIn(jsCode: string): string {
 		.replace(/\.gBCR\(\)/g,'.getBoundingClientRect().right')
 		.replace(/\.gBCB\(\)/g,'.getBoundingClientRect().bottom')
 
+		.replace(/^describe\(/g,"(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))(")
 		.replace(/\bdescribe\(/g,"(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))(")
 
 	);
