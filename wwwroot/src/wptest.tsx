@@ -283,7 +283,7 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 			style="position:absolute;top:0;left:0;right:0;bottom:0;"
 		/>
 		<TextArea id={a.id+'Textbox'} value$={a.value$} hidden={!!s.editor} onkeydown={enableTabInTextarea} style="appearance:none;background:transparent!important;border:none!important;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;width:calc(100% - 10px);white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:black;tab-size:4;outline:none!important;" />
-		<monaco-text-editor-placeholder hidden={a.value$().length>0} style="appearance:none;background:transparent;border:none;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:silver;pointer-events:none;">{(
+		<monaco-text-editor-placeholder hidden={a.value$().length>0} style="appearance:none;background:transparent;border:none;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:silver;pointer-events:none;overflow:hidden;">{(
 			{
 				'javascript': '//<head>\n// HEAD CODE GOES HERE\n//</head>\n//\n// BODY CODE GOES HERE',
 				'html': '<!--<table>\n    <tr>\n        <td>HTML CODE</td>\n        <td>GOES HERE</td>\n    </tr>\n</table>-->',
@@ -668,7 +668,7 @@ var SettingsDialog = new Tag().with({
 var TestEditorView = new Tag <{id:string}> ().from(a => {
 	// if the page moved to a new id 
 	// then we need to reset all data and download the new test
-	if(a.id != vm.currentTestId$() && a.id == location.hash.substr(2)) {
+	if(a.id != vm.currentTestId$() && a.id == location.hash.substr(2,a.id.length)) {
 		vm.currentTestId$(a.id);
 		if(a.id.indexOf('local:') == 0) {
 
@@ -691,7 +691,7 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 
 		} else if(a.id.indexOf('json:') == 0) {
 
-			vm.openFromJSON(JSON.parse(decodeURIComponent(a.id.substr('json:'.length))));
+			vm.openFromJSON(JSON.parse(decodeURIComponent(location.hash.substr('#/json:'.length))));
 
 		} else if(a.id && a.id != 'new') {
 
