@@ -8,7 +8,27 @@
 declare var outputPane : HTMLIFrameElement;
 
 /** The console pane (legacy code only) */
-declare var jsPaneConsole : HTMLElement;
+interface Window { jsPaneConsoleOutput?: HTMLPreElement }
+function appendToConsole(logo, content) {
+	var jsPaneConsoleOutput = window.jsPaneConsoleOutput;
+	if(jsPaneConsoleOutput) {
+		var textContent = convertObjectToDescription(content);
+		var logoSpan = document.createElement("span"); {
+			logoSpan.textContent = `${logo} `;
+		}
+		var contentSpan = document.createElement("span"); {
+			contentSpan.textContent = textContent;
+		}
+		var entry = document.createElement("div"); {
+			entry.title = textContent;
+			entry.appendChild(logoSpan);
+			entry.appendChild(contentSpan);
+			entry.setAttribute('data-logo', logo);
+		}
+		jsPaneConsoleOutput.appendChild(entry);
+		jsPaneConsoleOutput.scrollTop = jsPaneConsoleOutput.scrollHeight;
+	}
+}
 
 /** Converts the javascript code of watches to standard javascript */
 function expandShorthandsIn(jsCode: string): string {
@@ -347,6 +367,9 @@ class ViewModel {
 		// hide outdated element outline
 		this.isPicking$(false);
 		this.selectedElement$(null);
+		if(window.jsPaneConsoleOutput) { 
+			window.jsPaneConsoleOutput.innerHTML = '';
+		}
 
 		// bail out if we don't have loaded yet
 		if(!("outputPane" in window)) {
@@ -374,9 +397,29 @@ class ViewModel {
 		d.write("<!doctype html>");
 
 		// prepare the console hooks
+		outputPane.contentWindow.console.debug = function(...args) {
+			args.forEach(arg => appendToConsole('-', arg));
+			console.debug.apply(console,args);
+		};
 		outputPane.contentWindow.console.log = function(...args) {
-			args.forEach(arg => jsPaneConsole.innerText += `${arg}\n`); // TODO: fix unsafe here
+			args.forEach(arg => appendToConsole('-', arg));
 			console.log.apply(console,args);
+		};
+		outputPane.contentWindow.console.dir = function(...args) {
+			args.forEach(arg => appendToConsole('-', arg));
+			console.dir.apply(console,args);
+		};
+		outputPane.contentWindow.console.info = function(...args) {
+			args.forEach(arg => appendToConsole('i', arg));
+			console.info.apply(console,args);
+		};
+		outputPane.contentWindow.console.warn = function(...args) {
+			args.forEach(arg => appendToConsole('!', arg));
+			console.warn.apply(console,args);
+		};
+		outputPane.contentWindow.console.error = function(...args) {
+			args.forEach(arg => appendToConsole('‼️', arg));
+			console.error.apply(console,args);
 		};
 
 		// write the document content

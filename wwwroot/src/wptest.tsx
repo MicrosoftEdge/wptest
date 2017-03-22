@@ -343,8 +343,57 @@ var ToolsPaneWatches = new Tag <{ id:string, activePane$:Prop<string> }> ().from
 	</tools-pane-watches>
 )
 
-var ToolsPaneConsole = new Tag <{ id:string, activePane$:Prop<string> }> ().from(a =>
-	<tools-pane-console id={a.id} is-active-pane={a.activePane$()==a.id}></tools-pane-console> // TODO
+interface ToolsPaneConsoleState { history: string[], historyIndex: number }
+var ToolsPaneConsole = new Tag <{ id:string, activePane$:Prop<string> }, ToolsPaneConsoleState> ().with({
+	oncreate(this: ToolsPaneConsoleState) {
+		this.history = [''];
+		this.historyIndex = 0;
+	},
+	onsumbit(this: ToolsPaneConsoleState, e: UIEvent) {
+		try {
+			var inp = (e.target as HTMLElement).querySelector('input'); 
+			var expr = inp.value; inp.value = '';
+			// update the expression history
+			this.history[this.history.length-1] = expr;
+			this.historyIndex = this.history.push("")-1;
+			// append expression to console
+			appendToConsole(">", new String(expr));
+			// evaluate expression
+			var res = undefined; try { 
+				res = (outputPane.contentWindow as any).eval(expandShorthandsIn(expr)) 
+			} catch (ex) {
+				res = ex;
+			}
+			// append result to console
+			appendToConsole("=", res);
+		} catch (ex) {
+			console.error(ex);
+		} finally {
+			e.preventDefault();
+			return false;
+		}
+	},
+	onkeypress(this: ToolsPaneConsoleState, e: KeyboardEvent) {
+		var inp = (e.target as HTMLInputElement);
+		if (e.key == 'Up' || e.key == 'ArrowUp') {
+			if (this.historyIndex > 0) this.historyIndex--;
+			inp.value = this.history[this.historyIndex];
+		} else if (e.key == 'Down' || e.key == 'ArrowDown') {
+			if (this.historyIndex < this.history.length-1) this.historyIndex++;
+			inp.value = this.history[this.historyIndex];
+		} else if (this.historyIndex == this.history.length-1) {
+			this.history[this.historyIndex] = inp.value;
+		} else {
+			// nothing to do
+		}
+	}
+}).from((a,c,self) =>
+	<tools-pane-console id={a.id} is-active-pane={a.activePane$()==a.id}>
+		<pre id={a.id+"Output"}></pre>
+		<form method="POST" onsubmit={e=>self.onsumbit(e)}>
+			<input type="text" onkeydown={e=>self.onkeypress(e)} oninput={e=>self.onkeypress(e)} />
+		</form>
+	</tools-pane-console>
 )
 
 var ToolsPaneCode = new Tag <{ id:string, activePane$:Prop<string>, value$:Prop<string> }> ().from(a =>

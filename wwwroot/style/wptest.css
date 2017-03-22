@@ -169,13 +169,92 @@ tools-pane-watches {
 
 /* } */
 
-tools-pane-console {
+pre[of="tools-pane-console"] {
+	margin: 0;
 	padding: 10px; 
 	font-family: "Consolas", monospace; 
 	font-size: 10pt; 
-	word-wrap: break-word;
+	flex: 1 1 0;
+	overflow: auto;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	-ms-overflow-style: -ms-autohiding-scrollbar;
 }
 
+	pre[of="tools-pane-console"] > div[data-logo] {
+		margin: 0;
+	}
+	pre[of="tools-pane-console"] > div[data-logo] > span:first-child {
+		color: silver; font-weight: bold; -ms-user-select: none; user-select: none;
+	}
+	pre[of="tools-pane-console"] > div[data-logo] > span:last-child {
+		color: black; -ms-user-select: element; user-select: contain;
+	}
+
+	pre[of="tools-pane-console"] > div[data-logo=">"] {
+		margin-top: 6px;
+	}
+	pre[of="tools-pane-console"] > div[data-logo=">"] > span:first-child {
+		color: silver;
+	}
+	pre[of="tools-pane-console"] > div[data-logo=">"] > span:last-child {
+		color: silver;
+	}
+
+	pre[of="tools-pane-console"] > div[data-logo="="] {
+		margin-bottom: 6px;
+	}
+	pre[of="tools-pane-console"] > div[data-logo="="] > span:first-child {
+		color: silver;
+	}
+	pre[of="tools-pane-console"] > div[data-logo="="] > span:last-child {
+		color: black;
+	}
+
+	pre[of="tools-pane-console"] > div[data-logo="i"] {
+		background: aliceblue;
+	}
+	pre[of="tools-pane-console"] > div[data-logo="i"] > span:first-child {
+		color: blue;
+	}
+	pre[of="tools-pane-console"] > div[data-logo="i"] > span:last-child {
+		color: black;
+	}
+
+	pre[of="tools-pane-console"] > div[data-logo="!"] {
+		background: palegoldenrod;
+	}
+	pre[of="tools-pane-console"] > div[data-logo="!"] > span:first-child {
+		color: darkgoldenrod;
+	}
+	pre[of="tools-pane-console"] > div[data-logo="!"] > span:last-child {
+		color: darkgoldenrod;
+	}
+
+	pre[of="tools-pane-console"] > div[data-logo="‼️"] {
+		background: pink;
+	}
+	pre[of="tools-pane-console"] > div[data-logo="‼️"] > span:first-child {
+		color: lightcoral;
+	}
+	pre[of="tools-pane-console"] > div[data-logo="‼️"] > span:last-child {
+		color: red;
+	}
+
+input[of="tools-pane-console"] {
+	width: 100%; flex: 0 0 30px; height: 30px; padding: 0px 10px; border: none; 
+	border-top: 1px solid silver; background: transparent; color: blue;
+	font-family: "Consolas", monospace; font-size: 13px;
+	outline: none !important;
+}
+input[of="tools-pane-console"]:hover {
+	background: white; border-top-color: gray;
+}
+input[of="tools-pane-console"]:focus:hover,
+input[of="tools-pane-console"]:focus {
+	border-top-color: blue;
+	background: white;
+}
 output-pane {
 	display: flex;
 	flex-direction: row;

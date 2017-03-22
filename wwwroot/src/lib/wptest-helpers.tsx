@@ -25,6 +25,40 @@ var describe = function (elm: Element) {
 	return elm.nodeName + (elm.id ? `#${elm.id}` : '') + (elm.classList.length ? `.${elm.classList[0]}` : '');
 }
 
+var convertObjectToDescription = function(arg):string {
+	if(arg === null) return "null";
+	if(arg === undefined) return "undefined";
+	if(arg instanceof String) return arg as any; // only string objects can get through
+	if(typeof arg == "number") { // we allow more than what json recognizes
+		if(Number.isNaN(arg)) return "Number.NaN";
+		if(!Number.isFinite(arg) && arg >= 0) return "Number.POSITIVE_INFINITY";
+		if(!Number.isFinite(arg) && arg <= 0) return "Number.NEGATIVE_INFINITY";
+		return JSON.stringify(arg);
+	}
+	if(typeof arg == 'function') {
+		try { return `${arg}`; } catch (ex) {}
+		return '[object Function]'
+	}
+
+	var tag = '', str = '', jsn = '';
+	try { tag = Object.prototype.toString.call(arg); } catch (ex) {};
+	try { str = `${arg}` } catch (ex) {}
+	try { jsn = JSON.stringify(arg) } catch (ex) {}
+	if(str == tag) { str = ''; }
+	if(tag == '[object Object]') tag = '';
+
+	if(arg.cloneNode && 'outerHTML' in arg) {
+		try { return arg.cloneNode(false).outerHTML + ' ' + jsn } catch (ex) {}
+	}
+	if(tag && (typeof(arg)=='object' || typeof(arg)=='symbol')) {
+		try { return [tag,str,jsn].filter(x=>x).join(' ') } catch (ex) {}	
+	}
+	if(jsn) return jsn;
+	if(str) return str;
+	if(tag) return tag;
+	return "[object]";
+}
+
 interface _SimpleSelector { selector: string, slot: 'tag' | 'id' | 'class' | 'pseudo' }
 interface _CompoundSelector extends Array<_SimpleSelector> { }
 var buildSelectorFor = function (elm: Element) {
