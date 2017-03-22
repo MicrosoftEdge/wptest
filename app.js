@@ -9,14 +9,29 @@ var GitHubStrategy = require('passport-github').Strategy;
 var package = JSON.parse(fs.readFileSync('package.json'));
 var app = express();
 
-// settings
+// settings 
+// IMPORTANT: use either environment variables or hidden app.config.js to override
+// IMPROTANT: any non-default value should never be commited as part of this file
 var CFG = {
-	MONGO_URL: 'mongodb://localhost:27017/wptest',
+	// used when a global url is required
 	CURRENT_HOST: 'http://localhost:3000',
+	// used to connect to the mongo database, you need to start a local one by default
+	MONGO_URL: 'mongodb://localhost:27017/wptest',
+	// how long a user stays logged in by default
+	LOGIN_MAX_AGE: 1000*36e00*24*31*6,
+	// used to sign login cookies, don't choose too short
 	COOKIE_SECRET: 'UNSECURE_DEFAULT_SECRET',
+	// default requires http://localhost:3000/ (get your own at https://github.com/settings/applications/new)
 	GITHUB_CLIENT_ID: '63cc96eaf4ce8b5e9c42',
+	// see above, remember that you want to change these settings 
 	GITHUB_CLIENT_SECRET: 'abc8563f29d336c7da691e2d5c27af0d01d1fcde',
-	LOGIN_MAX_AGE: 1000*36e00*24*31*6
+}
+if(process && process.env) {
+	for(var key in CFG) {
+		if(CFG.hasOwnProperty(key) && process.env[key]) {
+			CFG[key] = process.env[key];
+		}
+	}
 }
 if(fs.existsSync("./app.config.js")) {
 	Object.assign(CFG, require('./app.config.js'));
