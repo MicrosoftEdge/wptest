@@ -470,12 +470,20 @@ function appendToConsole(logo, content) {
 /** Converts the javascript code of watches to standard javascript */
 function expandShorthandsIn(jsCode) {
     return (jsCode
+        .replace(/^\$\$\(/g, 'document.querySelectorAll(')
+        .replace(/^\$\(/g, 'document.querySelector(')
+        .replace(/\b\$\$\(/g, 'document.querySelectorAll(')
         .replace(/\b\$\(/g, 'document.querySelector(')
-        .replace(/\b\$\b/g, 'document.querySelector.bind(document)')
-        .replace(/\b\$$\(/g, 'document.querySelectorAll(')
-        .replace(/\b\$$\b/g, 'document.querySelectorAll.bind(document)')
+        .replace(/(\;|\,|\(|\)|\+|\-|\*|\/|\=|\<|\>|\||\&|\\|\s)\$\$\(/g, '$1document.querySelectorAll(')
+        .replace(/(\;|\,|\(|\)|\+|\-|\*|\/|\=|\<|\>|\||\&|\\|\s)\$\(/g, '$1document.querySelector(')
+        .replace(/^eFP\(/g, 'document.elementFromPoint(')
+        .replace(/^eFP\b/g, 'document.elementFromPoint.bind(document)')
         .replace(/\beFP\(/g, 'document.elementFromPoint(')
         .replace(/\beFP\b/g, 'document.elementFromPoint.bind(document)')
+        .replace(/^gCS\(/g, 'getComputedStyle(')
+        .replace(/^gCS\b/g, 'getComputedStyle.bind(window)')
+        .replace(/^rAF\(/g, 'requestAnimationFrame(')
+        .replace(/^rAF\b/g, 'requestAnimationFrame.bind(window)')
         .replace(/\bgCS\(/g, 'getComputedStyle(')
         .replace(/\bgCS\b/g, 'getComputedStyle.bind(window)')
         .replace(/\brAF\(/g, 'requestAnimationFrame(')
@@ -486,6 +494,7 @@ function expandShorthandsIn(jsCode) {
         .replace(/\.gBCT\(\)/g, '.getBoundingClientRect().top')
         .replace(/\.gBCR\(\)/g, '.getBoundingClientRect().right')
         .replace(/\.gBCB\(\)/g, '.getBoundingClientRect().bottom')
+        .replace(/^describe\(/g, "(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))(")
         .replace(/\bdescribe\(/g, "(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))("));
 }
 /** The data of the test being writter (as JSON) */
@@ -1293,7 +1302,7 @@ var MonacoTextEditor = new Tag().with({
 }).from((a, c, s) => React.createElement("monaco-text-editor", { id: a.id, language: a.language },
     React.createElement("monaco-text-editor-area", { id: a.id + 'Area', style: "position:absolute;top:0;left:0;right:0;bottom:0;" }),
     React.createElement(TextArea, { id: a.id + 'Textbox', "value$": a.value$, hidden: !!s.editor, onkeydown: enableTabInTextarea, style: "appearance:none;background:transparent!important;border:none!important;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;width:calc(100% - 10px);white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:black;tab-size:4;outline:none!important;" }),
-    React.createElement("monaco-text-editor-placeholder", { hidden: a.value$().length > 0, style: "appearance:none;background:transparent;border:none;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:silver;pointer-events:none;" }, ({
+    React.createElement("monaco-text-editor-placeholder", { hidden: a.value$().length > 0, style: "appearance:none;background:transparent;border:none;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:silver;pointer-events:none;overflow:hidden;" }, ({
         'javascript': '//<head>\n// HEAD CODE GOES HERE\n//</head>\n//\n// BODY CODE GOES HERE',
         'html': '<!--<table>\n    <tr>\n        <td>HTML CODE</td>\n        <td>GOES HERE</td>\n    </tr>\n</table>-->',
         'css': '/* CSS CODE GOES HERE         */\n/* table {                    */\n/*     border: 3px solid red; */\n/* }                          */'
@@ -1519,6 +1528,18 @@ var SelectorGenerationDialog = new Tag().with({
             }
             case "id": {
                 if (form.chosenId$()) {
+                    // assign the id to the element if we can
+                    if (w1.$0 && w1.$0.sourceLine >= 1) {
+                        var txt = '^(.|\r)*?';
+                        var line = vm.lineMapping[w1.$0.sourceLine - 1];
+                        for (var i = line; i--;) {
+                            txt += '\\n(.|\r)*?';
+                        }
+                        txt += '\\<' + w1.$0.tagName + '\\b';
+                        var reg = new RegExp(txt, 'i');
+                        tm.html = tm.html.replace(reg, '$& id="' + form.chosenId$() + '"');
+                    }
+                    // then return the value
                     w1.$0replacement = `$(${JSON.stringify('#' + form.chosenId$())})`;
                 }
                 break;
@@ -1580,7 +1601,7 @@ var SettingsDialog = new Tag().with({
 var TestEditorView = new Tag().from(a => {
     // if the page moved to a new id 
     // then we need to reset all data and download the new test
-    if (a.id != vm.currentTestId$() && a.id == location.hash.substr(2)) {
+    if (a.id != vm.currentTestId$() && a.id == location.hash.substr(2, a.id.length)) {
         vm.currentTestId$(a.id);
         if (a.id.indexOf('local:') == 0) {
             // local tests are loaded from localStorage
@@ -1601,7 +1622,7 @@ var TestEditorView = new Tag().from(a => {
             }
         }
         else if (a.id.indexOf('json:') == 0) {
-            vm.openFromJSON(JSON.parse(decodeURIComponent(a.id.substr('json:'.length))));
+            vm.openFromJSON(JSON.parse(decodeURIComponent(location.hash.substr('#/json:'.length))));
         }
         else if (a.id && a.id != 'new') {
             vm.isLoading$(true);
