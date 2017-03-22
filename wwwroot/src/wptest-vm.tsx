@@ -485,7 +485,10 @@ class ViewModel {
 
 	/** Saves the test in a json url */
 	saveInUrl() {
-		location.hash = "#/json:" + JSON.stringify(tmData);
+		suspendRedrawsOn(redraw => {
+			location.hash = "#/json:" + JSON.stringify(tmData);
+			vm.currentTestId$(location.hash.substr(2));
+		})
 	}
 
 	/** Saves the test model in the localStorage */
