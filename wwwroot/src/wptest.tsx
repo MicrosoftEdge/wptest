@@ -565,6 +565,19 @@ var SelectorGenerationDialog = new Tag().with({
 			}
 			case "id": {
 				if(form.chosenId$()) {
+					// assign the id to the element if we can
+					if(w1.$0 && w1.$0.sourceLine >= 1) {
+						var txt = '^(.|\r)*?';
+						var line = vm.lineMapping[w1.$0.sourceLine-1];
+						for(var i = line; i--;) {
+							txt += '\\n(.|\r)*?';
+						}
+						txt += '\\<' + w1.$0.tagName + '\\b';
+						var reg = new RegExp(txt, 'i');
+						tm.html = tm.html.replace(reg, '$& id="'+form.chosenId$()+'"');
+						vm.run();
+					}
+					// then return the value
 					w1.$0replacement = `$(${JSON.stringify('#'+form.chosenId$())})`;
 				}
 				break;
