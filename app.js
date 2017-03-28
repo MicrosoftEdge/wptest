@@ -46,7 +46,7 @@ if(isTestModeEnabled) {
 
 // connect to mongodb
 var db = null, tests = null, authors = null;
-var asTestWihtoutTags = { id: "true", author: "true", creationDate: 1, title: "true", html: "true", css: "true", jsBody: "true", jsHead: "true", watches: ["true"] };
+var asTestWihtoutTags = { id: 1, author: 1, creationDate: 1, title: 1, html: 1, css: 1, jsBody: 1, jsHead: 1, watches: 1 };
 require('mongodb').connect(CFG.MONGO_URL, function (err, new_db) {
 
 	// ensure success
@@ -143,6 +143,7 @@ app.get("/uploads/:testId([a-z0-9]*[0-9]).json", (req, res) => {
 		var id = req.params.testId; console.log(req.params);
 		tests.find({ id: id }, asTestWihtoutTags).toArray(function (err, results) {
 			if (err || results.length == 0) {
+				console.log(err);
 				res.status(404).send("Test not found");
 			} else {
 				res.status(200).send(JSON.stringify(results[0]));
