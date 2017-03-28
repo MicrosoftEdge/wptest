@@ -46,6 +46,7 @@ if(isTestModeEnabled) {
 
 // connect to mongodb
 var db = null, tests = null, authors = null;
+var asTestWihtoutTags = { id: "true", author: "true", creationDate: 1, title: "true", html: "true", css: "true", jsBody: "true", jsHead: "true", watches: ["true"] };
 require('mongodb').connect(CFG.MONGO_URL, function (err, new_db) {
 
 	// ensure success
@@ -57,7 +58,8 @@ require('mongodb').connect(CFG.MONGO_URL, function (err, new_db) {
 
 	// verrify that the schema is ready
 	new_tests.ensureIndex('id', { unique: true })
-	new_tests.ensureIndex('author', { unique: false })
+	new_tests.ensureIndex('tags', { unique: false });
+	new_tests.ensureIndex('author', { unique: false });
 	new_tests.ensureIndex('creationDate');
 	new_tests.ensureIndex({ title:"text", html:"text", css:"text", jsHead:"text", jsBody:"text" });
 	new_authors.ensureIndex('username', { unique: true });
@@ -139,7 +141,7 @@ app.get("/uploads/:testId([a-z0-9]*[0-9]).json", (req, res) => {
 	try {
 
 		var id = req.params.testId; console.log(req.params);
-		tests.find({ id: id }).toArray(function (err, results) {
+		tests.find({ id: id }, asTestWihtoutTags).toArray(function (err, results) {
 			if (err || results.length == 0) {
 				res.status(404).send("Test not found");
 			} else {
@@ -167,9 +169,10 @@ app.get('/u/', (req, res) => {
 
 // setup list-of-testcases by user url
 app.get('/u/:username/', (req, res) => {
-	tests.find({ author: req.params.username }).toArray(function (err, results) {
+	tests.find({ author: req.params.username }, asTestWihtoutTags).sort({ creationDate:-1 }).toArray(function (err, results) {
 		if(err || results.length == 0) {
-			res.status(404).send("Tests not found");
+			console.error(err);
+			res.status(404).send("No result found");
 		} else {
 			res.status(200).send(results.map(r => `<a href="/#/${r.id}">${r.id}: ${r.title} (${new Date(r.creationDate)})</a><br/>`).join(''))
 		}
@@ -177,13 +180,18 @@ app.get('/u/:username/', (req, res) => {
 })
 
 // setup search url
+function toSearchTag(word) {
+	var tag = word.replace(/\-[0-9]+/gi,' ').replace(/[^-_a-z]+/gi,'').toLowerCase();
+	return tag;
+}
 app.get('/search', (req, res) => {
 	var q = ` ${req.query['q']} `;
 	var qSegments = q.split(/ --([a-z]+) /g);
-	var qBeforeFlags = qSegments[0];
-	var qTitle = [], qHtml = [], qCss = [], qJs = [];
+	var qBeforeFlags = qSegments[0].split(/\s+/);
+	var qTitle = [], qHtml = [], qCss = [], qJs = [], qAuthor = [];
 	for(var i = 1; i<qSegments.length; i+=2) {
 		switch(qSegments[i]) {
+			case 'author': qAuthor = qSegments[i+1].trim().split(/\s+/); break;
 			case 'title': qTitle = qSegments[i+1].trim().split(/\s+/); break;
 			case 'html': qHtml = qSegments[i+1].trim().split(/\s+/); break;
 			case 'css': qCss = qSegments[i+1].trim().split(/\s+/); break;
@@ -191,23 +199,67 @@ app.get('/search', (req, res) => {
 			default: throw "INVALID INSTRUCTION: " + qSegments[i];
 		}
 	}
+
+	var tags = [
+		...(qBeforeFlags.map(toSearchTag).filter(x=>x)), 
+		...(qTitle.map(toSearchTag).filter(x=>x)), 
+		...(qHtml.map(toSearchTag).filter(x=>x)), 
+		...(qCss.map(toSearchTag).filter(x=>x)), 
+		...(qJs.map(toSearchTag).filter(x=>x))
+	];
+
+	if(tags.length == 0 && qAuthor.length == 0) {
+		res.status(400).send("Only search queries containing indexable words or an author filter are allowed to run");
+		return;
+	}
+
+	var searchQuery = {};
+	if(tags.length > 0) searchQuery.tags = { $all: tags };
+	if(qAuthor.length > 0) searchQuery.author = { $in: qAuthor };
+
+	console.log(searchQuery);
+
+	tests.find(searchQuery, asTestWihtoutTags).sort({ creationDate: -1 }).toArray(function(err, results) {
+		var results = results ? results.filter(r => {
+			if(qTitle.length && !qTitle.every(q => ~r.title.toLowerCase().indexOf(q.toLowerCase()))) return false;
+			if(qHtml.length && !qHtml.every(q => ~r.html.toLowerCase().indexOf(q.toLowerCase()))) return false;
+			if(qCss.length && !qCss.every(q => ~r.css.toLowerCase().indexOf(q.toLowerCase()))) return false;
+			if(qJs.length && !qJs.every(q => ~r.jsBody.toLowerCase().indexOf(q.toLowerCase()) || ~r.jsHead.toLowerCase().indexOf(q.toLowerCase()))) return false;
+			if(qBeforeFlags.length && !qBeforeFlags.every(q => ~r.title.toLowerCase().indexOf(q.toLowerCase()) || ~r.html.toLowerCase().indexOf(q.toLowerCase()) || ~r.css.toLowerCase().indexOf(q.toLowerCase()) || ~r.jsBody.toLowerCase().indexOf(q.toLowerCase()) || ~r.jsHead.toLowerCase().indexOf(q.toLowerCase()))) return false;
+			return true;
+		}) : [];
+		if(results.length) {
+			var html = results.map(r => `<a target="_top" href="/#/${r.id}">${r.id}: ${r.title} (${new Date(r.creationDate)})</a><br/>`).join('')
+			res.status(200).send(html);
+		} else if (err) {
+			res.status(500).send(err.message || err);
+		} else {
+			res.status(200).send("No result found")
+		}
+	})
+	/*//////////////////////////////////////////////////////////
+	// OLD CODE ASSUMING TEXT INDEX IS AVAILABLE
+	////////////////////////////////////////////////////////////
 	var searchText = (qBeforeFlags + ' ' + qTitle + ' ' + qHtml + ' ' + qCss + ' ' + qJs).trim();
 	console.log(searchText);
 	tests.find({ "$text": { "$search": searchText } }).toArray(function(err,results) {
-		var results = results.filter(r => {
+		var results = results ? results.filter(r => {
+			if(qAuthor.length && !~qAuthor.indexOf(r.author.toLowerCase())) return false;
 			if(qTitle.length && qTitle.every(qTitle => !~r.title.toLowerCase().indexOf(qTitle.toLowerCase()))) return false;
 			if(qHtml.length && !~r.html.toLowerCase().indexOf(qHtml.toLowerCase())) return false;
 			if(qCss.length && !~r.css.toLowerCase().indexOf(qCss.toLowerCase())) return false;
 			if(qJs.length && !~r.jsBody.toLowerCase().indexOf(qJs.toLowerCase())) return false;
 			return true;
-		});
+		}) : [];
 		if(results.length) {
-			var html = results.map(r => `<a href="/#/${r.id}">${r.id}: ${r.title} (${new Date(r.creationDate)})</a><br/>`).join('')
+			var html = results.map(r => `<a target="_top" href="/#/${r.id}">${r.id}: ${r.title} (${new Date(r.creationDate)})</a><br/>`).join('')
 			res.status(200).send(html);
+		} else if (err) {
+			res.status(500).send(err.message || err);
 		} else {
 			res.status(200).send("No result found")
 		}
-	})
+	})*/
 });
 
 // enable support for post requests
@@ -259,13 +311,26 @@ app.post('/new/testcase', (req, res) => {
 			css: String(test.css),
 			jsBody: String(test.jsBody),
 			jsHead: String(test.jsHead),
-			watches: test.watches.map(expr => String(expr))
+			watches: test.watches.map(expr => String(expr)),
+			tags: []
 		}
 
+		// generate the tags for the test case
+		try {
+			test.tags = [ 
+				... new Set(
+					toSearchTag((test.title + '\n' + test.html + '\n' + test.css + '\n' + test.jsBody + '\n' + test.jsHead)).match(/[-_a-z]*[a-z]([-_a-z]*[a-z])?/gi)
+				)
+			].sort();
+		} catch (ex) {
+			console.warn(ex);
+		}
 		console.log(test);
+		//throw "Disabled";
 
 	} catch (ex) {
 
+		console.warn(ex);
 		res.status(400).send("BadRequest");
 		return;
 
@@ -294,7 +359,7 @@ app.post('/new/testcase', (req, res) => {
 		// TODO: if test.id is already specified, we should reuse the root and find the next valid id
 		return new Promise(resolve => {
 			test.id = generateNewId();
-			tests.find({ id: test.id }).toArray().then(conflicts => {
+			tests.find({ id: test.id },{ id:1 }).toArray().then(conflicts => {
 				if(conflicts.length == 0) {
 					resolve(test);
 				} else {
