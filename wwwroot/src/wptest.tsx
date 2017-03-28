@@ -668,7 +668,7 @@ var SettingsDialog = new Tag().with({
 var TestEditorView = new Tag <{id:string}> ().from(a => {
 	// if the page moved to a new id 
 	// then we need to reset all data and download the new test
-	if(a.id != vm.currentTestId$() && a.id == location.hash.substr(2,a.id.length)) {
+	if(a.id != vm.currentTestId$() && (a.id == location.hash || a.id.substr(0, 5) == 'json:')) {
 		vm.currentTestId$(a.id);
 		if(a.id.indexOf('local:') == 0) {
 
