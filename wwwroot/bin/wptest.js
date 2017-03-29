@@ -631,6 +631,14 @@ class ViewModel {
         // ===================================================
         // watch replacement dialog
         // ===================================================
+        this.welcomeDialog = new WelcomeDialogViewModel(this);
+        // ===================================================
+        // watch replacement dialog
+        // ===================================================
+        this.searchDialog = new SearchDialogViewModel(this);
+        // ===================================================
+        // watch replacement dialog
+        // ===================================================
         this.selectorGenerationDialog = new SelectorGenerationDialogViewModel(this);
         // ===================================================
         // settings dialog
@@ -748,6 +756,15 @@ class ViewModel {
             vm.watchDisplayValues[expr] = `${result}`; // TODO
         }
         redrawIfReady();
+    }
+    // ===================================================
+    // general dialog settings
+    // ===================================================
+    closeAllDialogs() {
+        this.selectorGenerationDialog.isOpened$(false);
+        this.searchDialog.isOpened$(false);
+        this.welcomeDialog.isOpened$(false);
+        this.settingsDialog.isOpened$(false);
     }
     /** Removes the user cookie */
     logOut() {
@@ -1057,6 +1074,58 @@ class SettingsDialogViewModel {
     /** Ask the viewmodel to log a user in */
     logIn() {
         this.vm.logIn();
+    }
+    /** Open the welcome dialog */
+    openWelcomeDialog() {
+        this.vm.welcomeDialog.isOpened$(true);
+    }
+    /** Open the search dialog */
+    openSearchDialog() {
+        this.vm.searchDialog.isOpened$(true);
+    }
+}
+class WelcomeDialogViewModel {
+    constructor(vm) {
+        /** The attached view model */
+        this.vm = null;
+        /** Whether the dialog is opened or closed */
+        this.isOpened$ = m.prop(false);
+        this.vm = vm;
+        if (location.hash == '' || location.hash == '#/new') {
+            if (!localStorage.getItem('noWelcome') && !vm.githubIsConnected$()) {
+                this.isOpened$(true);
+            }
+            else {
+                localStorage.setItem('noWelcome', 'true');
+            }
+        }
+        else {
+            localStorage.setItem('noWelcome', 'true');
+        }
+    }
+}
+class SearchDialogViewModel {
+    constructor(vm) {
+        /** The attached view model */
+        this.vm = null;
+        /** Whether the dialog is opened or closed */
+        this.isOpened$ = m.prop(false);
+        /** Whether the dialog should get focus */
+        this.shouldGetFocus$ = m.prop(false);
+        /** The text that is being searched */
+        this.searchTerms$ = m.prop("");
+        /** The text that is being searched */
+        this.searchUrl$ = m.prop("about:blank");
+        this.vm = vm;
+    }
+    /** Opens the dialog */
+    open() {
+        if (!this.isOpened$()) {
+            this.searchTerms$("");
+            this.searchUrl$("about:blank");
+            this.isOpened$(true);
+        }
+        this.shouldGetFocus$(true);
     }
 }
 var vm = new ViewModel();
@@ -1538,6 +1607,7 @@ var SelectorGenerationDialog = new Tag().with({
                         txt += '\\<' + w1.$0.tagName + '\\b';
                         var reg = new RegExp(txt, 'i');
                         tm.html = tm.html.replace(reg, '$& id="' + form.chosenId$() + '"');
+                        vm.run();
                     }
                     // then return the value
                     w1.$0replacement = `$(${JSON.stringify('#' + form.chosenId$())})`;
@@ -1583,26 +1653,89 @@ var SettingsDialog = new Tag().with({
         var form = vm.settingsDialog;
         form.isOpened$(false);
     }
-}).from((a, s, self) => React.createElement("dialog", { as: "settings-generation-dialog", autofocus: true, hidden: !vm.settingsDialog.isOpened$() },
+}).from((a, s, self) => React.createElement("dialog", { as: "settings-dialog", autofocus: true, hidden: !vm.settingsDialog.isOpened$() },
     React.createElement("section", { tabindex: "-1" },
         React.createElement("h1", null, "Settings"),
         React.createElement("form", { action: "POST", onsubmit: e => { e.preventDefault(); self.close(); } },
             React.createElement("label", { style: "display: block; margin-bottom: 10px" },
-                React.createElement("button", { hidden: vm.githubIsConnected$(), onclick: e => vm.settingsDialog.logIn() }, "Log In using your Github account"),
+                React.createElement("button", { onclick: e => vm.settingsDialog.openWelcomeDialog() },
+                    React.createElement("span", { class: "icon" }, "\uD83D\uDEC8"),
+                    "Open the welcome screen")),
+            React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                React.createElement("button", { onclick: e => vm.settingsDialog.openSearchDialog() },
+                    React.createElement("span", { class: "icon" }, "\uD83D\uDD0E"),
+                    "Search existing test cases")),
+            React.createElement("hr", null),
+            React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                React.createElement("button", { hidden: vm.githubIsConnected$(), onclick: e => vm.settingsDialog.logIn() },
+                    React.createElement("span", { class: "icon" }, "\uD83D\uDD12"),
+                    "Log In using your Github account"),
                 React.createElement("button", { hidden: !vm.githubIsConnected$(), onclick: e => vm.settingsDialog.logOut() },
+                    React.createElement("span", { class: "icon" }, "\uD83D\uDD12"),
                     "Log Out of your Github account (",
                     vm.githubUserName$(),
                     ")")),
             React.createElement("label", { style: "display: block; margin-bottom: 10px" },
-                React.createElement("button", { hidden: !vm.settingsDialog.useMonaco$(), onclick: e => vm.settingsDialog.useMonaco$(false), style: "display: block" }, "Disable the advanced text editor on this device from now on"),
-                React.createElement("button", { hidden: vm.settingsDialog.useMonaco$(), onclick: e => vm.settingsDialog.useMonaco$(true), style: "display: block" }, "Enable the advanced text editor on this device from now on")),
+                React.createElement("button", { hidden: !vm.settingsDialog.useMonaco$(), onclick: e => vm.settingsDialog.useMonaco$(false), style: "display: block" },
+                    React.createElement("span", { class: "icon" }, "\u2699"),
+                    "Disable the advanced text editor on this device from now on"),
+                React.createElement("button", { hidden: vm.settingsDialog.useMonaco$(), onclick: e => vm.settingsDialog.useMonaco$(true), style: "display: block" },
+                    React.createElement("span", { class: "icon" }, "\u2699"),
+                    "Enable the advanced text editor on this device from now on")),
             React.createElement("footer", { style: "margin-top: 20px" },
                 React.createElement("input", { type: "submit", value: "Close" }))))));
+var SearchDialog = new Tag().with({
+    search() {
+        var form = vm.searchDialog;
+        form.searchUrl$('/search?q=' + encodeURIComponent(form.searchTerms$()) + '&time=' + Date.now());
+    },
+    close() {
+        var form = vm.searchDialog;
+        form.isOpened$(false);
+    },
+    onupdate() {
+        var form = vm.searchDialog;
+        if (this.wasOpened != form.isOpened$()) {
+            if (this.wasOpened) {
+                // TODO: close
+            }
+            else {
+                // TODO: open
+            }
+        }
+    }
+}).from((a, s, self) => React.createElement("dialog", { as: "search-dialog", autofocus: true, hidden: !vm.searchDialog.isOpened$() },
+    React.createElement("section", { tabindex: "-1", role: "search", style: "width: 80%; width: 80vw" },
+        React.createElement("h1", null, "Search testcases"),
+        React.createElement("form", { action: "POST", onsubmit: e => { e.preventDefault(); self.search(); } },
+            React.createElement("p", { style: "font-size: 10px" }, "Search terms are separated by spaces, and must all match for the result to be returned; You can use the --html --css --js --author modifiers to narrow down the search. Out of these, only --author considers its arguments as alternatives."),
+            React.createElement("p", { style: "font-size: 10px; color: green;" }, "Example: \"table --css border hidden --author FremyCompany gregwhitworth\" will return all test cases containing \"table\" in any code field, containing both border & hidden in their css code, and that have been written by FremyCompany or gregwhitworth."),
+            React.createElement("div", { style: "display: flex;" },
+                React.createElement(Input, { placeholder: "search terms here", "value$": vm.searchDialog.searchTerms$, style: "flex: 1 0 0" }),
+                React.createElement("input", { type: "submit", value: "Search" })),
+            React.createElement("iframe", { frameborder: "0", border: "0", src: vm.searchDialog.searchUrl$() }),
+            React.createElement("footer", { style: "margin-top: 5px" },
+                React.createElement("input", { type: "button", onclick: e => self.close(), value: "Close" }))))));
+var WelcomeDialog = new Tag().with({
+    close() {
+        var form = vm.welcomeDialog;
+        localStorage.setItem('noWelcome', 'true');
+        form.isOpened$(false);
+    }
+}).from((a, s, self) => React.createElement("dialog", { as: "welcome-dialog", autofocus: true, hidden: !vm.welcomeDialog.isOpened$() },
+    React.createElement("section", { tabindex: "-1" },
+        React.createElement("h1", null, "The Web Platform Test Center"),
+        React.createElement("form", { action: "POST", onsubmit: e => { e.preventDefault(); self.close(); } },
+            React.createElement("p", null, "This websites provides tools to simplify the creation of reduced web platform test cases and the search of previously-written test cases."),
+            React.createElement("p", null, "It is primarily addressed at engineers who build web browsers, and web developers who want to help bugs getting fixed by filing reduced issues on existing browsers."),
+            React.createElement("footer", { style: "margin-top: 20px" },
+                React.createElement("input", { type: "submit", value: " Got it! " }))))));
 var TestEditorView = new Tag().from(a => {
     // if the page moved to a new id 
     // then we need to reset all data and download the new test
     if (a.id != vm.currentTestId$() && (a.id == location.hash.substr(2) || (a.id.substr(0, 5) == 'json:' && location.hash.substr(0, 7) == '#/json:'))) {
         vm.currentTestId$(a.id);
+        vm.closeAllDialogs();
         if (a.id.indexOf('local:') == 0) {
             // local tests are loaded from localStorage
             var id = a.id;
@@ -1643,7 +1776,9 @@ var TestEditorView = new Tag().from(a => {
             React.createElement(OutputPane, null),
             React.createElement(ToolsPane, null)),
         React.createElement(SelectorGenerationDialog, null),
-        React.createElement(SettingsDialog, null))).children;
+        React.createElement(SettingsDialog, null),
+        React.createElement(SearchDialog, null),
+        React.createElement(WelcomeDialog, null))).children;
 });
 m.route(document.body, '/new', { '/:id...': TestEditorView() });
 //----------------------------------------------------------------
