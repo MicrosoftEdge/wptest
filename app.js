@@ -320,7 +320,7 @@ app.post('/new/testcase', (req, res) => {
 		try {
 			test.tags = [ 
 				... new Set(
-					toSearchTag((test.title + '\n' + test.html + '\n' + test.css + '\n' + test.jsBody + '\n' + test.jsHead)).match(/[-_a-z]*[a-z]([-_a-z]*[a-z])?/gi)
+					(test.title + '\n' + test.html + '\n' + test.css + '\n' + test.jsBody + '\n' + test.jsHead).replace(/\-[0-9]+/gi,' ').replace(/[0-9]+/gi,'').toLowerCase().match(/[-_a-z]*[a-z]([-_a-z]*[a-z])?/g)
 				)
 			].sort();
 		} catch (ex) {
