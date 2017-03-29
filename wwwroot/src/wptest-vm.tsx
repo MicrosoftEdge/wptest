@@ -241,7 +241,7 @@ class ViewModel {
 				dialog.watchExpression$(expr);
 				dialog.watchValue$({ defined: arguments.length >= 2, value: value });
 				dialog.autoId$(w1.$0.sourceTagId||'');
-				dialog.chosenMode$(w1.$0.sourceTagId ? 'auto' : 'selector')
+				dialog.chosenMode$(w1.$0.sourceTagId ? 'id' : 'selector')
 				dialog.chosenId$(w1.$0.sourceTagId||'');
 				dialog.chosenSelector$(buildSelectorFor(w1.$0));
 				dialog.isOpened$(true);
