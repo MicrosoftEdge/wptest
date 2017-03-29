@@ -253,7 +253,8 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 
 				// there was a content update
 				theNewValue$(this.value = this.editor.getValue());
-				requestAnimationFrame(time => m.redraw())
+				requestAnimationFrame(time => m.redraw());
+				this.isDirty = false;
 
 			} else {
 
