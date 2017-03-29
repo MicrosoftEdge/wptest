@@ -635,24 +635,41 @@ var SettingsDialog = new Tag().with({
 		form.isOpened$(false);
 	}
 }).from((a,s,self) => 
-	<dialog as="settings-generation-dialog" autofocus hidden={!vm.settingsDialog.isOpened$()}>
+	<dialog as="settings-dialog" autofocus hidden={!vm.settingsDialog.isOpened$()}>
 
 		<section tabindex="-1">
 			<h1>Settings</h1>
 			<form action="POST" onsubmit={e => { e.preventDefault(); self.close(); }}>
 				<label style="display: block; margin-bottom: 10px">
+					<button onclick={e => vm.settingsDialog.openWelcomeDialog()}>
+						<span class="icon">🛈</span>
+						Open the welcome screen
+					</button>
+				</label>
+				<label style="display: block; margin-bottom: 10px">
+					<button onclick={e => vm.settingsDialog.openSearchDialog()}>
+						<span class="icon">🔎</span>
+						Search existing test cases
+					</button>
+				</label>			
+				<hr />
+				<label style="display: block; margin-bottom: 10px">
 					<button hidden={vm.githubIsConnected$()} onclick={e => vm.settingsDialog.logIn()}>
+						<span class="icon">🔒</span>
 						Log In using your Github account
 					</button>
 					<button hidden={!vm.githubIsConnected$()} onclick={e => vm.settingsDialog.logOut()}>
+						<span class="icon">🔒</span>
 						Log Out of your Github account ({vm.githubUserName$()})
 					</button>
 				</label>
 				<label style="display: block; margin-bottom: 10px">
 					<button hidden={!vm.settingsDialog.useMonaco$()} onclick={e => vm.settingsDialog.useMonaco$(false)} style="display: block">
+						<span class="icon">⚙</span>
 						Disable the advanced text editor on this device from now on
 					</button>
 					<button hidden={vm.settingsDialog.useMonaco$()} onclick={e => vm.settingsDialog.useMonaco$(true)} style="display: block">
+						<span class="icon">⚙</span>
 						Enable the advanced text editor on this device from now on
 					</button>
 				</label>
@@ -665,11 +682,84 @@ var SettingsDialog = new Tag().with({
 	</dialog>
 )
 
+var SearchDialog = new Tag().with({
+	search() {
+		var form = vm.searchDialog;
+		form.searchUrl$('/search?q=' + encodeURIComponent(form.searchTerms$()) + '&time=' + Date.now());
+	},
+	close() {
+		var form = vm.searchDialog;
+		form.isOpened$(false);
+	},
+	onupdate() {
+		var form = vm.searchDialog;
+		if(this.wasOpened != form.isOpened$()) {
+			if(this.wasOpened) {
+				// TODO: close
+			} else {
+				// TODO: open
+			}
+		}
+	}
+}).from((a,s,self) => 
+	<dialog as="search-dialog" autofocus hidden={!vm.searchDialog.isOpened$()}>
+
+		<section tabindex="-1" role="search" style="width: 80%; width: 80vw">
+			<h1>Search testcases</h1>
+			<form action="POST" onsubmit={e => { e.preventDefault(); self.search(); }}>
+				<p style="font-size: 10px">
+					Search terms are separated by spaces, and must all match for the result to be returned; 
+					You can use the --html --css --js --author modifiers to narrow down the search.
+					Out of these, only --author considers its arguments as alternatives.
+				</p>
+				<p style="font-size: 10px; color: green;">
+					Example: "table --css border hidden --author FremyCompany gregwhitworth" will return 
+						all test cases containing "table" in any code field, 
+						containing both border &amp; hidden in their css code,
+						and that have been written by FremyCompany or gregwhitworth.
+				</p>
+				<div style="display: flex;">
+					<Input placeholder="search terms here" value$={vm.searchDialog.searchTerms$} style="flex: 1 0 0" />
+					<input type="submit" value="Search" />
+				</div>
+				<iframe frameborder="0" border="0" src={vm.searchDialog.searchUrl$()}></iframe>
+				<footer style="margin-top: 5px">
+					<input type="button" onclick={e=>self.close()} value="Close" />
+				</footer>
+			</form>
+		</section>
+
+	</dialog>
+)
+
+var WelcomeDialog = new Tag().with({
+	close() {
+		var form = vm.welcomeDialog;
+		localStorage.setItem('noWelcome','true');
+		form.isOpened$(false);
+	}
+}).from((a,s,self) => 
+	<dialog as="welcome-dialog" autofocus hidden={!vm.welcomeDialog.isOpened$()}>
+
+		<section tabindex="-1">
+			<h1>The Web Platform Test Center</h1>
+			<form action="POST" onsubmit={e => { e.preventDefault(); self.close(); }}>
+				<p>This websites provides tools to simplify the creation of reduced web platform test cases and the search of previously-written test cases.</p>
+				<p>It is primarily addressed at engineers who build web browsers, and web developers who want to help bugs getting fixed by filing reduced issues on existing browsers.</p>
+				<footer style="margin-top: 20px">
+					<input type="submit" value=" Got it! " />
+				</footer>
+			</form>
+		</section>
+
+	</dialog>
+)
+
 var TestEditorView = new Tag <{id:string}> ().from(a => {
 	// if the page moved to a new id 
 	// then we need to reset all data and download the new test
 	if(a.id != vm.currentTestId$() && (a.id == location.hash.substr(2) || (a.id.substr(0, 5) == 'json:' && location.hash.substr(0,7) == '#/json:'))) {
-		vm.currentTestId$(a.id);
+		vm.currentTestId$(a.id); vm.closeAllDialogs();
 		if(a.id.indexOf('local:') == 0) {
 
 			// local tests are loaded from localStorage
@@ -721,6 +811,8 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 
 			<SelectorGenerationDialog />
 			<SettingsDialog />
+			<SearchDialog />
+			<WelcomeDialog />
 
 		</body>
 	).children;

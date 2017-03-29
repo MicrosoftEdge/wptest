@@ -49,10 +49,12 @@ body > top-row > *, body > bottom-row > * {
 	}
 	body > dialog button {
 		-webkit-appearance: none;
-		border: 3px solid;
+		border: 1px solid;
 		background: #fff;
 		padding: 3px 6px;
 		font-size: 14px;
+		font-weight: bold;
+		font-family: 'Segoe UI', 'Segoe UI Symbol', sans-serif;
 		color: blue;
 		transition: outline-width 0.1s;
 		cursor: pointer;
@@ -72,12 +74,46 @@ body > top-row > *, body > bottom-row > * {
 
 /* } */
 
+button[of="settings-dialog"] {
+	width: 100%; text-align: left;
+}
+
+button[of="settings-dialog"] > span.icon {
+	display: inline-block; 
+	width: 20px; 
+	vertical-align: top;
+}
+
 input[type="text"][of="selector-generation-dialog"] {
 	display: block;
     margin-left: 20px;
     width: 350px;
     max-width: 80vw;
 	margin-top: 5px;
+}
+
+section[of="welcome-dialog"] {
+	max-width: 700px;
+	padding: 30px
+}
+
+h1[of="welcome-dialog"] {
+	text-align: center;
+	margin: 0; margin-bottom: 30px;
+}
+
+iframe[of="search-dialog"] {
+	width: 100%; 
+	height: calc(90vh - 385px);
+	background: 
+		white
+		repeating-linear-gradient(
+			45deg,
+			rgba(0, 0, 0, 0.05),
+			rgba(0, 0, 0, 0.05) 10px,
+			rgba(0, 0, 0, 0.08) 10px,
+			rgba(0, 0, 0, 0.08) 20px
+		);
 }
 
 tools-pane {
@@ -262,7 +298,7 @@ output-pane {
 
 /* [of="output-pane"] { */
 
-	iframe {
+	iframe[of="output-pane"] {
 		flex: 1 1 0px;
 		background: 
 			white

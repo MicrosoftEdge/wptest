@@ -325,6 +325,28 @@ class ViewModel {
 		redrawIfReady();
 	}
 
+	// ===================================================
+	// general dialog settings
+	// ===================================================
+
+	closeAllDialogs() {
+		this.selectorGenerationDialog.isOpened$(false);
+		this.searchDialog.isOpened$(false);
+		this.welcomeDialog.isOpened$(false);
+		this.settingsDialog.isOpened$(false);
+	}
+
+	// ===================================================
+	// watch replacement dialog
+	// ===================================================
+	
+	welcomeDialog = new WelcomeDialogViewModel(this)
+
+	// ===================================================
+	// watch replacement dialog
+	// ===================================================
+	
+	searchDialog = new SearchDialogViewModel(this)
 
 	// ===================================================
 	// watch replacement dialog
@@ -739,6 +761,65 @@ class SettingsDialogViewModel {
 		this.vm.logIn();
 	}
 
+	/** Open the welcome dialog */
+	openWelcomeDialog() {
+		this.vm.welcomeDialog.isOpened$(true);
+	}
+
+	/** Open the search dialog */
+	openSearchDialog() {
+		this.vm.searchDialog.isOpened$(true);
+	}
+}
+
+class WelcomeDialogViewModel {
+	/** The attached view model */
+	vm = null as ViewModel;
+	constructor(vm: ViewModel) {
+		this.vm = vm;
+		if(location.hash == '' || location.hash == '#/new') {
+			if(!localStorage.getItem('noWelcome') && !vm.githubIsConnected$()) {
+				this.isOpened$(true);
+			} else {
+				localStorage.setItem('noWelcome', 'true');
+			}
+		} else {
+			localStorage.setItem('noWelcome', 'true');
+		}
+	}
+
+	/** Whether the dialog is opened or closed */
+	isOpened$ = m.prop(false)
+}
+
+class SearchDialogViewModel {
+	/** The attached view model */
+	vm = null as ViewModel;
+	constructor(vm: ViewModel) {
+		this.vm = vm;
+	}
+
+	/** Whether the dialog is opened or closed */
+	isOpened$ = m.prop(false)
+
+	/** Whether the dialog should get focus */
+	shouldGetFocus$ = m.prop(false)
+
+	/** The text that is being searched */
+	searchTerms$ = m.prop("")
+
+	/** The text that is being searched */
+	searchUrl$ = m.prop("about:blank")
+
+	/** Opens the dialog */
+	open() {
+		if(!this.isOpened$()) {
+			this.searchTerms$("");
+			this.searchUrl$("about:blank");
+			this.isOpened$(true);
+		}
+		this.shouldGetFocus$(true);
+	}
 }
 
 var vm = new ViewModel();
