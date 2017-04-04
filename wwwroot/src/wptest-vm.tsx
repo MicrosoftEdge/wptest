@@ -187,6 +187,58 @@ class ViewModel {
 	/** Cache of the values of the watches (as string) */
 	watchDisplayValues = Object.create(null) as { [key:string]: string }
 
+	/** Cache of the expected values of the watches (as js expressions) */
+	watchExpectedValues = Object.create(null) as { [key:string]: string }
+	setupExpectedValueFor(expr: string) {
+		// get the current expected value if any
+		var currentExpectedValue = this.watchExpectedValues[expr];
+		// get the current watch value if any
+		var currentWatchValue = ''; try { currentWatchValue = JSON.stringify(this.watchValues[expr]); } catch (ex) {}
+		// now prompt for a new expected value
+		var newValue = prompt("Please enter a javascript expression producing the expected value (leave empty to set none)", currentExpectedValue || currentWatchValue || '');
+		// parse it into a form we can safely consider an expected value
+		try {
+			switch(newValue) {
+				case null:
+				case '':
+				case 'true': case 'false':
+				case 'null': case 'undefined': 
+				case 'Number.NaN':
+				case 'Number.POSITIVE_INFINITY': 
+				case 'Number.NEGATIVE_INFINITY': 
+				{
+					// sounds good
+					break;
+				}
+				default:
+				{
+					// then it needs to be some json
+					newValue = JSON.parse(newValue);
+					// type must be a primitive type so we can safely eval it anytime
+					if(typeof(newValue) == 'string' || typeof(newValue) == 'number' || typeof(newValue) == 'boolean') {
+						newValue = JSON.stringify(newValue);
+					} else {
+						throw new Error("Unsupported value; only primitive types are supported")
+					}
+				}
+			}
+		} catch (ex) {
+			alert('Sorry, this value cannot be used as an expected value.\n\nOnly primitive types are supported.'); 
+			console.error(ex);
+			return;
+		}
+		// set this as the new expected value
+		if(newValue) {
+			this.watchExpectedValues[expr] = newValue;
+		} else if (newValue === '') {
+			delete this.watchExpectedValues[expr];
+		} else {
+			return; // because the user cancelled
+		}
+		// invalidate the current rendering (if necessary)
+		m.redraw();
+	}
+
 	/** Special flag map of watches to hide (because they have been pinned) */
 	hiddenAutoWatches = Object.create(null) as { [key:string]: boolean }
 

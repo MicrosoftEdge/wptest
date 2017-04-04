@@ -200,7 +200,12 @@ tools-pane-watches {
 	.watch-list > li > input[type="checkbox"] { min-width: 13px; } /* chrome hack */
 	.watch-list > li > input[type="text"] { max-width: 200px; flex: 0 1 200px; padding: 0; -webkit-appearance: none; appearance: none; background: transparent; border: none; }
 	.watch-list > li > output { flex: 1; padding: 0; padding-left: 10px; -webkit-appearance: none; appearance: none; background: transparent; border: none; }
+	.watch-list > li > output[assert=pass] { color: green; background: transparent; }
+	.watch-list > li > output[assert=fail] { color: yellow; background: red; }
 	.watch-list > li > input[type="text"][readonly], .watch-list > li > output { color: gray; }
+	.watch-list > li > button.edit { position: absolute; right:20px; background: transparent; border: none; opacity: 0; }
+	.watch-list > li:hover > button.edit { opacity: 1; }
+	.watch-list > li > button.edit:focus { opacity: 1; outline: 5px solid currentColor; }
 
 
 /* } */

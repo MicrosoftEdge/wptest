@@ -330,8 +330,9 @@ var ToolsPaneWatches = new Tag <{ id:string, activePane$:Prop<string> }> ().from
 		{tm.watches.map((expr,i,a) => 
 			<li>
 				<input type="checkbox" checked title="Uncheck to delete this watch" onchange={e=>{if(!e.target.checked) { vm.removePinnedWatch(expr); e.target.checked=true; }}} />
-				<Input type="text" title={expr} value$={m.prop2(x => expr, v => a[i]=v)} />
-				<output>{`${vm.watchDisplayValues[expr]||''}`}</output>
+				<Input type="text" title={expr} value$={m.prop2(x => expr, v => { if(a[i] != v) { a[i]=v; requestAnimationFrame(then=>vm.refreshWatches()); } })} />
+				<output assert={vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr])===vm.watchValues[expr] ? 'pass':'fail':'none'}>{`${vm.watchDisplayValues[expr]||''}`}</output>
+				<button class="edit" title="Edit the expected value" onclick={e=>vm.setupExpectedValueFor(expr)}>edit</button>
 			</li>
 		)}
 		</ul>
