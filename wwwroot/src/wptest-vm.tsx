@@ -427,7 +427,10 @@ class ViewModel {
 
 	/** Redirects to the login page */
 	logIn() {
-		sessionStorage.setItem('local:save', this.currentTestId$());
+		var currentId = this.currentTestId$();
+		if(currentId != 'local:save' && currentId != 'new') {
+			sessionStorage.setItem('local:save', currentId);
+		}
 		location.href = '/login/github/start';
 	}
 	
