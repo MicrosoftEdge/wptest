@@ -773,12 +773,15 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 			vm.openFromJSON(JSON.parse(localStorage.getItem(id)));
 
 			// when we recover the local:save test, we should offer to save online
-			if(a.id=='local:save' && vm.githubIsConnected$()) {
-				setTimeout(function() {
-					if(confirm(`Welcome back, ${vm.githubUserName$()}! Should we save your test online now?`)) {
-						vm.saveOnline();
-					}
-				}, 32);
+			if(a.id=='local:save') {
+				sessionStorage.removeItem('local:save');
+				if(id!='local:save' && vm.githubIsConnected$()) {
+					setTimeout(function() {
+						if(confirm(`Welcome back, ${vm.githubUserName$()}! Should we save your test online now?`)) {
+							vm.saveOnline();
+						}
+					}, 32);
+				}
 			}
 
 		} else if(a.id.indexOf('json:') == 0) {

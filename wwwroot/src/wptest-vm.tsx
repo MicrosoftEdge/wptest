@@ -420,6 +420,7 @@ class ViewModel {
 
 	/** Redirects to the login page */
 	logIn() {
+		sessionStorage.setItem('local:save', this.currentTestId$());
 		location.href = '/login/github/start';
 	}
 	
