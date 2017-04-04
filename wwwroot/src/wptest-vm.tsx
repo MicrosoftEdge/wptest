@@ -574,6 +574,7 @@ class ViewModel {
 		suspendRedrawsOn(redraw => {
 			location.hash = "#/json:" + JSON.stringify(tmData);
 			vm.currentTestId$(location.hash.substr(2));
+			redraw();
 		})
 	}
 
