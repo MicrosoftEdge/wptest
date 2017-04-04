@@ -842,7 +842,10 @@ class ViewModel {
     }
     /** Redirects to the login page */
     logIn() {
-        sessionStorage.setItem('local:save', this.currentTestId$());
+        var currentId = this.currentTestId$();
+        if (currentId != 'local:save' && currentId != 'new') {
+            sessionStorage.setItem('local:save', currentId);
+        }
         location.href = '/login/github/start';
     }
     /** Refreshes the output frame with the latest source code */
@@ -1813,14 +1816,13 @@ var TestEditorView = new Tag().from(a => {
     if (a.id != vm.currentTestId$() && (a.id == location.hash.substr(2) || (a.id.substr(0, 5) == 'json:' && location.hash.substr(0, 7) == '#/json:'))) {
         vm.currentTestId$(a.id);
         vm.closeAllDialogs();
-        if (a.id.indexOf('local:') == 0) {
-            // local tests are loaded from localStorage
-            var id = a.id;
-            if (sessionStorage.getItem(id)) {
-                id = sessionStorage.getItem(id);
-                vm.currentTestId$(id);
-                vm.updateURL();
-            }
+        var id = a.id;
+        if (id == 'local:save') {
+            id = sessionStorage.getItem(id) || 'new';
+            vm.currentTestId$(id);
+            vm.updateURL();
+        }
+        if (id.indexOf('local:') == 0) {
             vm.openFromJSON(JSON.parse(localStorage.getItem(id)));
             // when we recover the local:save test, we should offer to save online
             if (a.id == 'local:save') {
@@ -1834,13 +1836,13 @@ var TestEditorView = new Tag().from(a => {
                 }
             }
         }
-        else if (a.id.indexOf('json:') == 0) {
+        else if (id.indexOf('json:') == 0) {
             vm.openFromJSON(JSON.parse(decodeURIComponent(location.hash.substr('#/json:'.length))));
         }
-        else if (a.id && a.id != 'new') {
+        else if (id && id != 'new') {
             vm.isLoading$(true);
             vm.openFromJSON(null);
-            fetch('/uploads/' + a.id + '.json').then(r => r.json()).then(d => {
+            fetch('/uploads/' + id + '.json').then(r => r.json()).then(d => {
                 vm.openFromJSON(d);
             });
         }
