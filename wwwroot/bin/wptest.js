@@ -596,6 +596,8 @@ class ViewModel {
         this.watchValues = Object.create(null);
         /** Cache of the values of the watches (as string) */
         this.watchDisplayValues = Object.create(null);
+        /** Cache of the expected values of the watches (as js expressions) */
+        this.watchExpectedValues = Object.create(null);
         /** Special flag map of watches to hide (because they have been pinned) */
         this.hiddenAutoWatches = Object.create(null);
         /** The text currently used as display-filter input for the watches */
@@ -661,6 +663,65 @@ class ViewModel {
         this.idMappings = new Set();
         /** Whether the test model is still waiting on some data from the server */
         this.isLoading$ = m.prop(false);
+    }
+    setupExpectedValueFor(expr) {
+        // get the current expected value if any
+        var currentExpectedValue = this.watchExpectedValues[expr];
+        // get the current watch value if any
+        var currentWatchValue = '';
+        try {
+            currentWatchValue = JSON.stringify(this.watchValues[expr]);
+        }
+        catch (ex) { }
+        // now prompt for a new expected value
+        var newValue = prompt("Please enter a javascript expression producing the expected value (leave empty to set none)", currentExpectedValue || currentWatchValue || '');
+        // parse it into a form we can safely consider an expected value
+        try {
+            switch (newValue) {
+                case null:
+                case '':
+                case 'true':
+                case 'false':
+                case 'null':
+                case 'undefined':
+                case 'Number.NaN':
+                case 'Number.POSITIVE_INFINITY':
+                case 'Number.NEGATIVE_INFINITY':
+                    {
+                        // sounds good
+                        break;
+                    }
+                default:
+                    {
+                        // then it needs to be some json
+                        newValue = JSON.parse(newValue);
+                        // type must be a primitive type so we can safely eval it anytime
+                        if (typeof (newValue) == 'string' || typeof (newValue) == 'number' || typeof (newValue) == 'boolean') {
+                            newValue = JSON.stringify(newValue);
+                        }
+                        else {
+                            throw new Error("Unsupported value; only primitive types are supported");
+                        }
+                    }
+            }
+        }
+        catch (ex) {
+            alert('Sorry, this value cannot be used as an expected value.\n\nOnly primitive types are supported.');
+            console.error(ex);
+            return;
+        }
+        // set this as the new expected value
+        if (newValue) {
+            this.watchExpectedValues[expr] = newValue;
+        }
+        else if (newValue === '') {
+            delete this.watchExpectedValues[expr];
+        }
+        else {
+            return; // because the user cancelled
+        }
+        // invalidate the current rendering (if necessary)
+        m.redraw();
     }
     /** Adds an expression to the list of watches (eventually bootstrapped with a value) */
     addPinnedWatch(expr, value) {
@@ -773,6 +834,7 @@ class ViewModel {
     }
     /** Redirects to the login page */
     logIn() {
+        sessionStorage.setItem('local:save', this.currentTestId$());
         location.href = '/login/github/start';
     }
     /** Refreshes the output frame with the latest source code */
@@ -1413,8 +1475,12 @@ var ToolsPaneWatches = new Tag().from(a => React.createElement("tools-pane-watch
                     vm.removePinnedWatch(expr);
                     e.target.checked = true;
                 } } }),
-            React.createElement(Input, { type: "text", title: expr, "value$": m.prop2(x => expr, v => a[i] = v) }),
-            React.createElement("output", null, `${vm.watchDisplayValues[expr] || ''}`)))),
+            React.createElement(Input, { type: "text", title: expr, "value$": m.prop2(x => expr, v => { if (a[i] != v) {
+                    a[i] = v;
+                    requestAnimationFrame(then => vm.refreshWatches());
+                } }) }),
+            React.createElement("output", { assert: vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr]) === vm.watchValues[expr] ? 'pass' : 'fail' : 'none' }, `${vm.watchDisplayValues[expr] || ''}`),
+            React.createElement("button", { class: "edit", title: "Edit the expected value", onclick: e => vm.setupExpectedValueFor(expr) }, "edit")))),
     React.createElement("ul", { class: "watch-list" }, vm.autoWatches.map(expr => React.createElement("li", { hidden: vm.hiddenAutoWatches[expr] || !vm.watchFilter$().matches(expr) },
         React.createElement("input", { type: "checkbox", title: "Check to pin this watch", onchange: e => { if (e.target.checked) {
                 vm.addPinnedWatch(expr);
@@ -1747,12 +1813,15 @@ var TestEditorView = new Tag().from(a => {
             }
             vm.openFromJSON(JSON.parse(localStorage.getItem(id)));
             // when we recover the local:save test, we should offer to save online
-            if (a.id == 'local:save' && vm.githubIsConnected$()) {
-                setTimeout(function () {
-                    if (confirm(`Welcome back, ${vm.githubUserName$()}! Should we save your test online now?`)) {
-                        vm.saveOnline();
-                    }
-                }, 32);
+            if (a.id == 'local:save') {
+                sessionStorage.removeItem('local:save');
+                if (id != 'local:save' && vm.githubIsConnected$()) {
+                    setTimeout(function () {
+                        if (confirm(`Welcome back, ${vm.githubUserName$()}! Should we save your test online now?`)) {
+                            vm.saveOnline();
+                        }
+                    }, 32);
+                }
             }
         }
         else if (a.id.indexOf('json:') == 0) {
