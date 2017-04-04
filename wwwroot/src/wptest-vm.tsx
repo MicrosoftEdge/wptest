@@ -71,19 +71,26 @@ function expandShorthandsIn(jsCode: string): string {
 	);
 }
 
-/** The data of the test being writter (as JSON) */
-var tmData = {
-	id: undefined,
+/** The data of the test being written (as ViewModel) */
+var tm = m.addProps<TestDataModel,TestModel>({
 	title: "UntitledTest",
 	html: "",
 	css: "",
 	jsBody: "",
 	jsHead: "",
-	watches: [ ]
-} as TestDataModel;
+	watches: [ ],
+	watchValues: []
+});
 
-/** The data of the test being written (as ViewModel) */
-var tm = m.addProps<TestDataModel,TestModel>(tmData);
+/** The data of the test being written (as JSON) */
+var getTestData = () => {
+	// get the data
+	var tmData = tm.sourceModel;
+	// sync the watchValues before returning the data
+	tmData.watchValues = tmData.watches.map(expr => vm.watchExpectedValues[expr]);
+	// return the data
+	return tmData;
+};
 
 /** The data used to represent the current state of the view */
 class ViewModel {
@@ -572,7 +579,7 @@ class ViewModel {
 	/** Saves the test in a json url */
 	saveInUrl() {
 		suspendRedrawsOn(redraw => {
-			location.hash = "#/json:" + JSON.stringify(tmData);
+			location.hash = "#/json:" + JSON.stringify(getTestData());
 			vm.currentTestId$(location.hash.substr(2));
 			redraw();
 		})
@@ -581,7 +588,7 @@ class ViewModel {
 	/** Saves the test model in the localStorage */
 	saveLocally() {
 		
-		var data = tmData;
+		var data = getTestData();
 
 		var id = '';
 		var idLetters = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -613,7 +620,7 @@ class ViewModel {
 			return;
 		}
 		// upload the testcase data
-		var data = tmData;
+		var data = getTestData();
 		fetch('/new/testcase/', {
 			method: 'POST', 
 			body: JSON.stringify(data),
@@ -647,16 +654,17 @@ class ViewModel {
 	/** Resets the test model based on new data */
 	openFromJSON(newData?: TestDataModel) {
 		this.isLoading$(false)
-		Object.assign<TestDataModel,TestDataModel>(tmData, {
+		Object.assign<TestDataModel,TestDataModel>(getTestData(), {
 			title: 'UntitledTest',
 			html: '',
 			css: '',
 			jsHead: '',
 			jsBody: '',
-			watches: []
+			watches: [],
+			watchValues: []
 		});
 		if(newData) {
-			Object.assign<TestDataModel,TestDataModel>(tmData, newData);
+			Object.assign<TestDataModel,TestDataModel>(getTestData(), newData);
 		}
 		this.updateURL();
 		this.run();
@@ -666,7 +674,7 @@ class ViewModel {
 	updateURL() {
 		updatePageTitle();
 		location.hash = '#/' + vm.currentTestId$();
-		history.replaceState(tmData, document.title, location.href); // TODO: clone
+		history.replaceState(getTestData(), document.title, location.href); // TODO: clone
 	}
 
 	/** Exports the test into a web platform test */

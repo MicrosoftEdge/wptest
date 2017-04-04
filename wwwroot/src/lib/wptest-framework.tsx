@@ -145,6 +145,7 @@ m.addProps = function(o) {
 			}
 		}
 	}
+	r.sourceModel = o;
 	return r;
 } as any
 

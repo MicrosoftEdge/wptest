@@ -5,6 +5,7 @@ interface TestDataModel {
 	jsHead: string,
 	jsBody: string,
 	watches: Array<string>,
+	watchValues: Array<string>
 }
 
 interface TestModel extends TestDataModel {
@@ -13,5 +14,7 @@ interface TestModel extends TestDataModel {
 	css$: Prop<string>,
 	jsHead$: Prop<string>,
 	jsBody$: Prop<string>,
-	watches$: Prop<string>,
+	watches$: Prop<string[]>,
+	watchValues$: Prop<string[]>,
+	sourceModel: TestDataModel
 }

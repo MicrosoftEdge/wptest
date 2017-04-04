@@ -46,7 +46,7 @@ if(isTestModeEnabled) {
 
 // connect to mongodb
 var db = null, tests = null, authors = null;
-var asTestWihtoutTags = { id: 1, author: 1, creationDate: 1, title: 1, html: 1, css: 1, jsBody: 1, jsHead: 1, watches: 1 };
+var asTestWihtoutTags = { id: 1, author: 1, creationDate: 1, title: 1, html: 1, css: 1, jsBody: 1, jsHead: 1, watches: 1, watchValues: 1 };
 require('mongodb').connect(CFG.MONGO_URL, function (err, new_db) {
 
 	// ensure success
@@ -313,6 +313,7 @@ app.post('/new/testcase', (req, res) => {
 			jsBody: String(test.jsBody),
 			jsHead: String(test.jsHead),
 			watches: test.watches.map(expr => String(expr)),
+			watchValues: test.watchValues.map(expr => String(expr)),
 			tags: []
 		}
 
