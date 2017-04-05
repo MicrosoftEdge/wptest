@@ -958,7 +958,7 @@ class ViewModel {
     /** Saves the test in a json url */
     saveInUrl() {
         suspendRedrawsOn(redraw => {
-            location.hash = "#/json:" + JSON.stringify(getTestData());
+            location.hash = "#/json:" + encodeURIComponent(JSON.stringify(getTestData()));
             vm.currentTestId$(location.hash.substr(2));
             redraw();
         });
