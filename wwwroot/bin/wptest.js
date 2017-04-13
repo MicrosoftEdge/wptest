@@ -1447,9 +1447,9 @@ var MonacoTextEditor = new Tag().with({
         }
     }
 }).from((a, c, s) => React.createElement("monaco-text-editor", { id: a.id, language: a.language },
-    React.createElement("monaco-text-editor-area", { id: a.id + 'Area', style: "position:absolute;top:0;left:0;right:0;bottom:0;" }),
-    React.createElement(TextArea, { id: a.id + 'Textbox', "value$": a.value$, hidden: !!s.editor, onkeydown: enableTabInTextarea, style: "appearance:none;background:transparent!important;border:none!important;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;width:calc(100% - 10px);white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:black;tab-size:4;outline:none!important;" }),
-    React.createElement("monaco-text-editor-placeholder", { hidden: a.value$().length > 0, style: "appearance:none;background:transparent;border:none;padding:0;margin:0;position:absolute;top:0;left:10px;right:0;bottom:0;white-space:pre;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.4;color:silver;pointer-events:none;overflow:hidden;" }, ({
+    React.createElement("monaco-text-editor-area", { id: a.id + 'Area' }),
+    React.createElement(TextArea, { id: a.id + 'Textbox', "value$": a.value$, hidden: !!s.editor, onkeydown: enableTabInTextarea }),
+    React.createElement("monaco-text-editor-placeholder", { hidden: a.value$().length > 0 }, ({
         'javascript': '//<head>\n// HEAD CODE GOES HERE\n//</head>\n//\n// BODY CODE GOES HERE',
         'html': '<!--<table>\n    <tr>\n        <td>HTML CODE</td>\n        <td>GOES HERE</td>\n    </tr>\n</table>-->',
         'css': '/* CSS CODE GOES HERE         */\n/* table {                    */\n/*     border: 3px solid red; */\n/* }                          */'
