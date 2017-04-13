@@ -574,6 +574,8 @@ class ViewModel {
         // ===================================================
         // watch settings
         // ===================================================
+        /** This value should be updated each time the watches are modified, and trigger their UI update */
+        this.lastWatchUpdateTime$ = m.prop(-1);
         /** The readonly watches for the selected element */
         this.autoWatches = [
             "describe($0)",
@@ -729,6 +731,7 @@ class ViewModel {
             return; // because the user cancelled
         }
         // invalidate the current rendering (if necessary)
+        vm.lastWatchUpdateTime$(performance.now());
         m.redraw();
     }
     /** Adds an expression to the list of watches (eventually bootstrapped with a value) */
@@ -758,6 +761,9 @@ class ViewModel {
                 return;
             }
         }
+        // if we were given a fake element as $0, we need to delete it before running the watches
+        if (w1.$0 && 'id' in w1.$0 && !('nodeName' in w1.$0))
+            window['$0'] = undefined;
         // actually pin this expresion now that the safety checks have run
         tm.watches.push(processedExpression);
         if (arguments.length >= 2) {
@@ -775,7 +781,7 @@ class ViewModel {
             // we have no recollection of this watch, recompute everything
             vm.refreshWatches();
         }
-        redrawIfReady();
+        this.lastWatchUpdateTime$(performance.now());
     }
     /** Removes an expression from the list of watches */
     removePinnedWatch(expr) {
@@ -783,7 +789,7 @@ class ViewModel {
         if (index >= 0) {
             tm.watches.splice(index, 1);
         }
-        redrawIfReady();
+        this.lastWatchUpdateTime$(performance.now());
     }
     /** Recomputes the values and display values of watches */
     refreshWatches(elm) {
@@ -824,7 +830,7 @@ class ViewModel {
             vm.watchValues[expr] = result;
             vm.watchDisplayValues[expr] = `${result}`; // TODO
         }
-        redrawIfReady();
+        this.lastWatchUpdateTime$(performance.now());
     }
     // ===================================================
     // general dialog settings
@@ -864,12 +870,12 @@ class ViewModel {
         // remove any $ values since we are going to clear the inner document
         var w1 = window;
         var w2 = outputPane.contentWindow;
+        var recoverableElements = [];
         w1.$0replacement = undefined;
-        w1.$0 = w1.$1 = w1.$2 = w1.$3 = w1.$4 =
-            w1.$5 = w1.$6 = w1.$7 = w1.$8 = w1.$9 = undefined;
-        w2.$0 = w2.$1 = w2.$2 = w2.$3 = w2.$4 =
-            w2.$5 = w2.$6 = w2.$7 = w2.$8 = w2.$9 = undefined;
-        // TODO: try to match via sourceLine/tagName/id?
+        for (var i = 10; i--;) {
+            recoverableElements.unshift(w1['$' + i]);
+            w1['$' + i] = w2['$' + i] = undefined;
+        }
         for (var id of this.idMappings) {
             w2[id] = undefined;
         }
@@ -921,6 +927,18 @@ class ViewModel {
         vm.lineMappingLineCount = htmlLines.length;
         // create short names for all elements without custom id
         attributeIds(this);
+        // recover $0/1/... values if we can
+        for (var i = 10; i--;) {
+            var elm = recoverableElements[i];
+            if (elm) {
+                if (elm.id) {
+                    w1['$' + i] = w2['$' + i] = w2.document.getElementById(elm.id);
+                }
+                else if (elm.sourceLine) {
+                    // TODO: try to match elements by sourceLine and tagName
+                }
+            }
+        }
         // rerun the watches
         this.refreshWatches();
         //-------------------------------------------------------
@@ -1472,7 +1490,18 @@ var ToolsPaneToolbar = new Tag().from(a => React.createElement("tools-pane-toolb
     React.createElement(TabButton, { pane: "jsPaneConsole", "activePane$": a.activePane$ }, "Console"),
     React.createElement(TabButton, { pane: "jsPaneHeadCode", "activePane$": a.activePane$ }, "Header code"),
     React.createElement(TabButton, { pane: "jsPaneBodyCode", "activePane$": a.activePane$ }, "Body code")));
-var ToolsPaneWatches = new Tag().from(a => React.createElement("tools-pane-watches", { block: true, id: a.id, "is-active-pane": a.activePane$() == a.id },
+var ToolsPaneWatches = new Tag().with({
+    onbeforeupdate() {
+        var lastWatchFilter = vm.watchFilterText$();
+        var lastWatchUpdateTime = vm.lastWatchUpdateTime$();
+        var shouldUpdate = (false
+            || this.lastKnownWatchUpdateTime != lastWatchUpdateTime
+            || this.lastKnownWatchFilter != lastWatchFilter);
+        this.lastKnownWatchUpdateTime = lastWatchUpdateTime;
+        this.lastKnownWatchFilter = lastWatchFilter;
+        return shouldUpdate;
+    }
+}).from(a => React.createElement("tools-pane-watches", { block: true, id: a.id, "is-active-pane": a.activePane$() == a.id },
     React.createElement(Input, { class: "watch-filter-textbox", "value$": vm.watchFilterText$, onkeyup: e => { if (e.keyCode == 27) {
             vm.watchFilterText$('');
         } }, type: "text", required: true, placeholder: "🔎", title: "Filter the watch list" }),
@@ -1629,8 +1658,9 @@ var OutputPaneCover = new Tag().with({
     }),
     setCurrentElementFromClick(e) {
         var elm = outputPane.contentDocument.elementFromPoint(e.offsetX, e.offsetY);
+        var shouldUpdate = vm.selectedElement$() !== elm;
         vm.selectedElement$(elm);
-        if (e.type == 'pointerdown') {
+        if (e.type == 'pointerdown' || e.type == 'mousedown') {
             // stop picking on pointer down
             vm.isPicking$(false);
             // also, update the watches for this new element
@@ -1638,12 +1668,34 @@ var OutputPaneCover = new Tag().with({
             if (elm.sourceLine) {
                 vm.shouldMoveToSelectedElement$(true);
             }
+            // we should always update in this case
+            shouldUpdate = true;
         }
         // we kinda need a synchronous redraw to be reactive
-        // TODO: optimize this in another way?
-        m.redraw(true);
+        // and we need no redraw at all if we didn't update
+        e.redraw = false;
+        if (shouldUpdate) {
+            m.redraw(true);
+        }
+    },
+    getPointerOrMouseEvents() {
+        var onpointerdown = 'onpointerdown' in window ? 'onpointerdown' : 'onmousedown';
+        var onpointermove = 'onpointermove' in window ? 'onpointermove' : 'onmousemove';
+        if (this.shouldBeHidden()) {
+            return {
+                [onpointermove]: null,
+                [onpointerdown]: null
+            };
+        }
+        if (!this.events) {
+            this.events = {
+                [onpointermove]: e => this.setCurrentElementFromClick(e),
+                [onpointerdown]: e => this.setCurrentElementFromClick(e)
+            };
+        }
+        return this.events;
     }
-}).from((a, c, self) => React.createElement("output-pane-cover", { block: true, id: a.id, onpointermove: self.shouldBeHidden() ? null : e => self.setCurrentElementFromClick(e), onpointerdown: self.shouldBeHidden() ? null : e => self.setCurrentElementFromClick(e), "is-active": vm.isPicking$() },
+}).from((a, c, self) => React.createElement("output-pane-cover", Object.assign({ block: true, id: a.id, "is-active": vm.isPicking$() }, self.getPointerOrMouseEvents()),
     React.createElement("margin-box", { block: true, hidden: self.shouldBeHidden(), style: self.boxStyles$().marginBox },
         React.createElement("border-box", { block: true, style: self.boxStyles$().borderBox },
             React.createElement("padding-box", { block: true, style: self.boxStyles$().paddingBox },
@@ -1680,6 +1732,9 @@ var SelectorGenerationDialog = new Tag().with({
             case "id": {
                 if (form.chosenId$()) {
                     // assign the id to the element if we can
+                    if (w1.$0) {
+                        w1.$0.id = form.chosenId$();
+                    }
                     if (w1.$0 && w1.$0.sourceLine >= 1) {
                         var txt = '^(.|\r)*?';
                         var line = vm.lineMapping[w1.$0.sourceLine - 1];
@@ -1690,6 +1745,8 @@ var SelectorGenerationDialog = new Tag().with({
                         var reg = new RegExp(txt, 'i');
                         tm.html = tm.html.replace(reg, '$& id="' + form.chosenId$() + '"');
                         vm.run();
+                        if (!window['$0'])
+                            window['$0'] = { id: form.chosenId$() };
                     }
                     // then return the value
                     w1.$0replacement = `$(${JSON.stringify('#' + form.chosenId$())})`;
