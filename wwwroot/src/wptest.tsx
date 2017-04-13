@@ -764,21 +764,27 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 		vm.currentTestId$(a.id); vm.closeAllDialogs();
 		var id = a.id; 
 		if(id == 'local:save') {
-			id = sessionStorage.getItem(id) || 'new';
+			id = sessionStorage.getItem(id) || (localStorage.getItem('local:save') ? 'local:save' : 'new');
 			vm.currentTestId$(id);
 			vm.updateURL();
 		}
 		if(id.indexOf('local:') == 0) {
 
-			vm.openFromJSON(JSON.parse(localStorage.getItem(id)));
+			try {
+				vm.openFromJSON(JSON.parse(localStorage.getItem(id)));
+			} catch(ex) {
+				alert("An error occurred while trying to load that test. Is it still in your local storage?");
+			}
 
 			// when we recover the local:save test, we should offer to save online
 			if(a.id=='local:save') {
 				sessionStorage.removeItem('local:save');
+				localStorage.removeItem('local:save');
 				if(id!='local:save' && vm.githubIsConnected$()) {
 					setTimeout(function() {
 						if(confirm(`Welcome back, ${vm.githubUserName$()}! Should we save your test online now?`)) {
-							vm.saveOnline();
+							localStorage.removeItem(id);
+							vm.saveOnline(); 
 						}
 					}, 32);
 				}

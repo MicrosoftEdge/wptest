@@ -601,6 +601,7 @@ class ViewModel {
 
 		sessionStorage.setItem('local:save', 'local:' + id);
 		localStorage.setItem('local:' + id, JSON.stringify(data));
+		localStorage.setItem('local:save', localStorage.getItem('local:' + id)); // in case the session gets lost
 		location.hash = "#/local:" + id;
 
 	}
@@ -631,6 +632,7 @@ class ViewModel {
 		}).then(r => r.json()).then(o => {
 
 			sessionStorage.removeItem('local:save');
+			localStorage.removeItem('local:save');
 			suspendRedrawsOn(redraw => {
 				
 				// update the data
