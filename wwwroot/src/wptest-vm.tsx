@@ -483,12 +483,12 @@ class ViewModel {
 		// remove any $ values since we are going to clear the inner document
 		var w1 = window as any;
 		var w2 = outputPane.contentWindow as any;
+		var recoverableElements = [] as Element[];
 		w1.$0replacement = undefined;
-		w1.$0 = w1.$1 = w1.$2 = w1.$3 = w1.$4 = 
-		w1.$5 = w1.$6 = w1.$7 = w1.$8 = w1.$9 = undefined; 
-		w2.$0 = w2.$1 = w2.$2 = w2.$3 = w2.$4 = 
-		w2.$5 = w2.$6 = w2.$7 = w2.$8 = w2.$9 = undefined; 
-		// TODO: try to match via sourceLine/tagName/id?
+		for(var i = 10; i--;) {
+			recoverableElements.unshift(w1['$'+i]);
+			w1['$'+i] = w2['$'+i] = undefined;
+		}
 		for(var id of this.idMappings) {
 			w2[id] = undefined;
 		}
@@ -548,6 +548,18 @@ class ViewModel {
 		
 		// create short names for all elements without custom id
 		attributeIds(this)
+
+		// recover $0/1/... values if we can
+		for(var i = 10; i--;) {
+			var elm = recoverableElements[i];
+			if(elm) {
+				if(elm.id) {
+					w1['$'+i] = w2['$'+i] = w2.document.getElementById(elm.id);
+				} else if (elm.sourceLine) {
+					// TODO: try to match elements by sourceLine and tagName
+				}
+			}
+		}
 		
 		// rerun the watches
 		this.refreshWatches();
