@@ -848,7 +848,10 @@ var coreRenderer = function($window) {
 	function updateEvent(vnode, key2, value) {
 		var element = vnode.dom
 		var callback = typeof onevent !== "function" ? value : function(e) {
-			var result = value.call(element, e)
+			// I ADDED A HACK HERE:
+			amountOfRedrawSuspenders++;
+			try { var result = value.call(element, e) }
+			finally { amountOfRedrawSuspenders--; }
 			onevent.call(element, e)
 			return result
 		}
@@ -886,16 +889,22 @@ var coreRenderer = function($window) {
 		return false
 	}
 	function render(dom, vnodes) {
-		if (!dom) throw new Error("Ensure the DOM element being passed to m.route/m.mount/m.render is not undefined.")
-		var hooks = []
-		var active = $doc.activeElement
-		// First time0 rendering into a node clears it out
-		if (dom.vnodes == null) dom.textContent = ""
-		if (!Array.isArray(vnodes)) vnodes = [vnodes]
-		updateNodes(dom, dom.vnodes, Vnode.normalizeChildren(vnodes), false, hooks, null, undefined)
-		dom.vnodes = vnodes
-		for (var i = 0; i < hooks.length; i++) hooks[i]()
-		if ($doc.activeElement !== active) active.focus()
+		// I ADDED A HACK HERE
+		try {
+			amountOfRedrawSuspenders++;
+			if (!dom) throw new Error("Ensure the DOM element being passed to m.route/m.mount/m.render is not undefined.")
+			var hooks = []
+			var active = $doc.activeElement
+			// First time0 rendering into a node clears it out
+			if (dom.vnodes == null) dom.textContent = ""
+			if (!Array.isArray(vnodes)) vnodes = [vnodes]
+			updateNodes(dom, dom.vnodes, Vnode.normalizeChildren(vnodes), false, hooks, null, undefined)
+			dom.vnodes = vnodes
+			for (var i = 0; i < hooks.length; i++) hooks[i]()
+			if ($doc.activeElement !== active) active.focus()
+		} finally {
+			amountOfRedrawSuspenders--;
+		}
 	}
 	return {render: render, setEventCallback: setEventCallback}
 }

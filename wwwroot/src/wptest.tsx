@@ -315,7 +315,19 @@ var ToolsPaneToolbar = new Tag <{ activePane$:Prop<string> }> ().from(a=>
 	</tools-pane-toolbar>
 );
 
-var ToolsPaneWatches = new Tag <{ id:string, activePane$:Prop<string> }> ().from(a =>
+var ToolsPaneWatches = new Tag <{ id:string, activePane$:Prop<string> }> ().with({
+	onbeforeupdate() {
+		var lastWatchFilter = vm.watchFilterText$();
+		var lastWatchUpdateTime = vm.lastWatchUpdateTime$();
+		var shouldUpdate = (false
+			|| this.lastKnownWatchUpdateTime != lastWatchUpdateTime
+			|| this.lastKnownWatchFilter != lastWatchFilter
+		);
+		this.lastKnownWatchUpdateTime = lastWatchUpdateTime;
+		this.lastKnownWatchFilter = lastWatchFilter;
+		return shouldUpdate;
+	}
+}).from(a =>
 	<tools-pane-watches block id={a.id} is-active-pane={a.activePane$()==a.id}>
 		<Input class="watch-filter-textbox" value$={vm.watchFilterText$} onkeyup={e=>{if(e.keyCode==27){vm.watchFilterText$('')}}} type="text" required placeholder="🔎" title="Filter the watch list" />
 		<ul class="watch-list">
@@ -484,9 +496,10 @@ var OutputPaneCover = new Tag <{ id:string }> ().with({
 	setCurrentElementFromClick(e: PointerEvent) {
 
 		var elm = outputPane.contentDocument.elementFromPoint(e.offsetX, e.offsetY);
+		var shouldUpdate = vm.selectedElement$() !== elm;
 		vm.selectedElement$(elm);
 		
-		if(e.type == 'pointerdown') {
+		if(e.type == 'pointerdown' || e.type == 'mousedown') {
 
 			// stop picking on pointer down
 			vm.isPicking$(false);
@@ -496,16 +509,41 @@ var OutputPaneCover = new Tag <{ id:string }> ().with({
 			if(elm.sourceLine) {
 				vm.shouldMoveToSelectedElement$(true);
 			}
+			
+			// we should always update in this case
+			shouldUpdate = true;
+
 		}
 
 		// we kinda need a synchronous redraw to be reactive
-		// TODO: optimize this in another way?
-		m.redraw(true); 
+		// and we need no redraw at all if we didn't update
+		(e as any).redraw = false;
+		if(shouldUpdate) {
+			m.redraw(true); 
+		}
 
+	},
+
+	getPointerOrMouseEvents() {
+		var onpointerdown = 'onpointerdown' in window ? 'onpointerdown' : 'onmousedown';
+		var onpointermove = 'onpointermove' in window ? 'onpointermove' : 'onmousemove';
+		if(this.shouldBeHidden()) {
+			return {
+				[onpointermove]: null, 
+				[onpointerdown]: null
+			};
+		}
+		if(!this.events) {
+			this.events = { 
+				[onpointermove]: e=>this.setCurrentElementFromClick(e), 
+				[onpointerdown]: e=>this.setCurrentElementFromClick(e)
+			}
+		}
+		return this.events;
 	}
 
 }).from((a,c,self)=>
-	<output-pane-cover block id={a.id} onpointermove={self.shouldBeHidden() ? null : e=>self.setCurrentElementFromClick(e)} onpointerdown={self.shouldBeHidden() ? null : e=>self.setCurrentElementFromClick(e)} is-active={vm.isPicking$()}>
+	<output-pane-cover block id={a.id} is-active={vm.isPicking$()} {...self.getPointerOrMouseEvents()}>
 		<margin-box block hidden={self.shouldBeHidden()} style={self.boxStyles$().marginBox}>
 			<border-box block style={self.boxStyles$().borderBox}>
 				<padding-box block style={self.boxStyles$().paddingBox}>

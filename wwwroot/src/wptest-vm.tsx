@@ -159,6 +159,9 @@ class ViewModel {
 	// watch settings
 	// ===================================================
 
+	/** This value should be updated each time the watches are modified, and trigger their UI update */
+	lastWatchUpdateTime$ = m.prop(-1);
+
 	/** The readonly watches for the selected element */
 	autoWatches = [
 		"describe($0)",
@@ -243,6 +246,7 @@ class ViewModel {
 			return; // because the user cancelled
 		}
 		// invalidate the current rendering (if necessary)
+		vm.lastWatchUpdateTime$(performance.now());
 		m.redraw();
 	}
 
@@ -308,6 +312,9 @@ class ViewModel {
 			}
 		}
 
+		// if we were given a fake element as $0, we need to delete it before running the watches
+		if(w1.$0 && 'id' in w1.$0 && !('nodeName' in w1.$0)) window['$0'] = undefined;
+
 		// actually pin this expresion now that the safety checks have run
 		tm.watches.push(processedExpression);
 		if(arguments.length >= 2) {
@@ -329,7 +336,7 @@ class ViewModel {
 			vm.refreshWatches();
 
 		}
-		redrawIfReady();
+		this.lastWatchUpdateTime$(performance.now());
 	}
 
 	/** Removes an expression from the list of watches */
@@ -338,7 +345,7 @@ class ViewModel {
 		if(index >= 0) {
 			tm.watches.splice(index,1);
 		}
-		redrawIfReady();
+		this.lastWatchUpdateTime$(performance.now());
 	}
 
 	/** Recomputes the values and display values of watches */
@@ -381,7 +388,7 @@ class ViewModel {
 			vm.watchDisplayValues[expr] = `${result}`; // TODO
 		}
 		
-		redrawIfReady();
+		this.lastWatchUpdateTime$(performance.now());
 	}
 
 	// ===================================================
