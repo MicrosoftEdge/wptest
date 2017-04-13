@@ -973,6 +973,7 @@ class ViewModel {
         }
         sessionStorage.setItem('local:save', 'local:' + id);
         localStorage.setItem('local:' + id, JSON.stringify(data));
+        localStorage.setItem('local:save', localStorage.getItem('local:' + id)); // in case the session gets lost
         location.hash = "#/local:" + id;
     }
     /** Saves the test model on the server */
@@ -1001,6 +1002,7 @@ class ViewModel {
             credentials: "same-origin"
         }).then(r => r.json()).then(o => {
             sessionStorage.removeItem('local:save');
+            localStorage.removeItem('local:save');
             suspendRedrawsOn(redraw => {
                 // update the data
                 this.currentTestId$(o.id);
@@ -1818,18 +1820,25 @@ var TestEditorView = new Tag().from(a => {
         vm.closeAllDialogs();
         var id = a.id;
         if (id == 'local:save') {
-            id = sessionStorage.getItem(id) || 'new';
+            id = sessionStorage.getItem(id) || (localStorage.getItem('local:save') ? 'local:save' : 'new');
             vm.currentTestId$(id);
             vm.updateURL();
         }
         if (id.indexOf('local:') == 0) {
-            vm.openFromJSON(JSON.parse(localStorage.getItem(id)));
+            try {
+                vm.openFromJSON(JSON.parse(localStorage.getItem(id)));
+            }
+            catch (ex) {
+                alert("An error occurred while trying to load that test. Is it still in your local storage?");
+            }
             // when we recover the local:save test, we should offer to save online
             if (a.id == 'local:save') {
                 sessionStorage.removeItem('local:save');
+                localStorage.removeItem('local:save');
                 if (id != 'local:save' && vm.githubIsConnected$()) {
                     setTimeout(function () {
                         if (confirm(`Welcome back, ${vm.githubUserName$()}! Should we save your test online now?`)) {
+                            localStorage.removeItem(id);
                             vm.saveOnline();
                         }
                     }, 32);
