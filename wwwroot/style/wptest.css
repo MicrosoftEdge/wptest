@@ -28,6 +28,7 @@ body > top-row > *, body > bottom-row > * {
 	js-pane { flex: 1 1 0; position: relative; z-index: 1; }
 	tools-pane { flex: 1 1 0; position: relative; }
 	output-pane { flex: 1 1 0; position: relative; }
+	html-pane[is-focused], css-pane[is-focused], js-pane[is-focused] { z-index: 9; }
 
 	body > dialog { 
 		background: rgba(0,0,0,0.7);

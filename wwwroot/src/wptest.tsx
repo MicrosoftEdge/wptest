@@ -28,7 +28,7 @@ var BodyToolbar = new Tag <{ model:TestModel }> ().from(a =>
 );
 
 interface MonacoTextEditorState { editor:monaco.editor.IStandaloneCodeEditor, value:string, isDirty:boolean }
-var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:string }, MonacoTextEditorState> ().with(
+var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:string, isFocused$?: Prop<boolean> }, MonacoTextEditorState> ().with(
 	{
 		oncreate(this: MonacoTextEditorState, node: M.VirtualNode) {
 
@@ -72,6 +72,20 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 				this.editor.getModel().onDidChangeContent(e => {
 					if(this.editor.isFocused()) {
 						this.isDirty = true;
+						redrawIfReady();
+					}
+				});
+
+				this.editor.onDidFocusEditor(() => {
+					if(node.attrs && node.attrs.isFocused$) {
+						node.attrs.isFocused$(true);
+						redrawIfReady();
+					}
+				});
+
+				this.editor.onDidBlurEditor(() => {
+					if(node.attrs && node.attrs.isFocused$) {
+						node.attrs.isFocused$(false);
 						redrawIfReady();
 					}
 				});
@@ -555,16 +569,16 @@ var OutputPaneCover = new Tag <{ id:string }> ().with({
 	</output-pane-cover>
 )
 
-var HTMLPane = new Tag().from(a =>
-	<html-pane disabled-style={{'flex-grow':tm.html?3:1}}><MonacoTextEditor id="htmlPaneEditor" value$={tm.html$} language="html" /></html-pane>
+var HTMLPane = new Tag<{ isFocused$: Prop<boolean> }>().from(a =>
+	<html-pane is-focused={a.isFocused$()} disabled-style={{'flex-grow':tm.html?3:1}}><MonacoTextEditor id="htmlPaneEditor" value$={tm.html$} language="html" isFocused$={a.isFocused$} /></html-pane>
 )
 
-var CSSPane = new Tag().from(a =>
-	<css-pane disabled-style={{'flex-grow':tm.css?3:1}}><MonacoTextEditor id="cssPaneEditor" value$={tm.css$} language="css" /></css-pane>
+var CSSPane = new Tag<{ isFocused$: Prop<boolean> }>().from(a =>
+	<css-pane is-focused={a.isFocused$()} disabled-style={{'flex-grow':tm.css?3:1}}><MonacoTextEditor id="cssPaneEditor" value$={tm.css$} language="css" isFocused$={a.isFocused$} /></css-pane>
 );
 
-var JSPane = new Tag().from(a =>
-	<js-pane disabled-style={{'flex-grow':tm.jsBody?3:1}}><MonacoTextEditor id="jsPaneEditor" value$={vm.jsCombined$} language="javascript" /></js-pane>
+var JSPane = new Tag<{ isFocused$: Prop<boolean> }>().from(a =>
+	<js-pane is-focused={a.isFocused$()} disabled-style={{'flex-grow':tm.jsBody?3:1}}><MonacoTextEditor id="jsPaneEditor" value$={vm.jsCombined$} language="javascript" isFocused$={a.isFocused$} /></js-pane>
 );
 
 var ToolsPane = new Tag().from(a =>
@@ -849,9 +863,9 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 
 			<BodyToolbar model={tm} />
 			<top-row row>
-				<HTMLPane />
-				<CSSPane />
-				<JSPane />
+				<HTMLPane isFocused$={vm.isHtmlPaneFocused$} />
+				<CSSPane isFocused$={vm.isCssPaneFocused$} />
+				<JSPane isFocused$={vm.isJsPaneFocused$} />
 			</top-row>
 
 			<bottom-row row>

@@ -145,6 +145,10 @@ class ViewModel {
 			tm.jsBody = jsBody;
 		}
 	} as Prop<string>
+
+	isHtmlPaneFocused$ = m.prop(false)
+	isCssPaneFocused$ = m.prop(false)
+	isJsPaneFocused$ = m.prop(false)
 	
 
 	// ===================================================
