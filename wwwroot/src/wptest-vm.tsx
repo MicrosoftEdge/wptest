@@ -625,8 +625,11 @@ class ViewModel {
 		sessionStorage.setItem('local:save', 'local:' + id);
 		localStorage.setItem('local:' + id, JSON.stringify(data));
 		localStorage.setItem('local:save', localStorage.getItem('local:' + id)); // in case the session gets lost
-		location.hash = "#/local:" + id;
-
+		suspendRedrawsOn(redraw => {
+			this.currentTestId$("local:" + id);
+			location.hash = "#/local:" + id;
+			redraw();
+		})
 	}
 
 	/** Saves the test model on the server */
