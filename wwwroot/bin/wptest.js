@@ -566,6 +566,9 @@ class ViewModel {
                 tm.jsBody = jsBody;
             }
         };
+        this.isHtmlPaneFocused$ = m.prop(false);
+        this.isCssPaneFocused$ = m.prop(false);
+        this.isJsPaneFocused$ = m.prop(false);
         // ===================================================
         // jsPane settings
         // ===================================================
@@ -1287,6 +1290,18 @@ var MonacoTextEditor = new Tag().with({
                     redrawIfReady();
                 }
             });
+            this.editor.onDidFocusEditor(() => {
+                if (node.attrs && node.attrs.isFocused$) {
+                    node.attrs.isFocused$(true);
+                    redrawIfReady();
+                }
+            });
+            this.editor.onDidBlurEditor(() => {
+                if (node.attrs && node.attrs.isFocused$) {
+                    node.attrs.isFocused$(false);
+                    redrawIfReady();
+                }
+            });
             // register to the window resize event, and relayout if needed
             window.addEventListener('resize', x => {
                 this.editor.layout();
@@ -1700,12 +1715,12 @@ var OutputPaneCover = new Tag().with({
         React.createElement("border-box", { block: true, style: self.boxStyles$().borderBox },
             React.createElement("padding-box", { block: true, style: self.boxStyles$().paddingBox },
                 React.createElement("content-box", { block: true, style: self.boxStyles$().contentBox }))))));
-var HTMLPane = new Tag().from(a => React.createElement("html-pane", { "disabled-style": { 'flex-grow': tm.html ? 3 : 1 } },
-    React.createElement(MonacoTextEditor, { id: "htmlPaneEditor", "value$": tm.html$, language: "html" })));
-var CSSPane = new Tag().from(a => React.createElement("css-pane", { "disabled-style": { 'flex-grow': tm.css ? 3 : 1 } },
-    React.createElement(MonacoTextEditor, { id: "cssPaneEditor", "value$": tm.css$, language: "css" })));
-var JSPane = new Tag().from(a => React.createElement("js-pane", { "disabled-style": { 'flex-grow': tm.jsBody ? 3 : 1 } },
-    React.createElement(MonacoTextEditor, { id: "jsPaneEditor", "value$": vm.jsCombined$, language: "javascript" })));
+var HTMLPane = new Tag().from(a => React.createElement("html-pane", { "is-focused": a.isFocused$(), "disabled-style": { 'flex-grow': tm.html ? 3 : 1 } },
+    React.createElement(MonacoTextEditor, { id: "htmlPaneEditor", "value$": tm.html$, language: "html", "isFocused$": a.isFocused$ })));
+var CSSPane = new Tag().from(a => React.createElement("css-pane", { "is-focused": a.isFocused$(), "disabled-style": { 'flex-grow': tm.css ? 3 : 1 } },
+    React.createElement(MonacoTextEditor, { id: "cssPaneEditor", "value$": tm.css$, language: "css", "isFocused$": a.isFocused$ })));
+var JSPane = new Tag().from(a => React.createElement("js-pane", { "is-focused": a.isFocused$(), "disabled-style": { 'flex-grow': tm.jsBody ? 3 : 1 } },
+    React.createElement(MonacoTextEditor, { id: "jsPaneEditor", "value$": vm.jsCombined$, language: "javascript", "isFocused$": a.isFocused$ })));
 var ToolsPane = new Tag().from(a => React.createElement("tools-pane", null,
     React.createElement(ToolsPaneToolbar, { "activePane$": vm.activeJsTab$ }),
     React.createElement("tools-pane-tabs", null,
@@ -1917,9 +1932,9 @@ var TestEditorView = new Tag().from(a => {
     return (React.createElement("body", null,
         React.createElement(BodyToolbar, { model: tm }),
         React.createElement("top-row", { row: true },
-            React.createElement(HTMLPane, null),
-            React.createElement(CSSPane, null),
-            React.createElement(JSPane, null)),
+            React.createElement(HTMLPane, { "isFocused$": vm.isHtmlPaneFocused$ }),
+            React.createElement(CSSPane, { "isFocused$": vm.isCssPaneFocused$ }),
+            React.createElement(JSPane, { "isFocused$": vm.isJsPaneFocused$ })),
         React.createElement("bottom-row", { row: true },
             React.createElement(OutputPane, null),
             React.createElement(ToolsPane, null)),
