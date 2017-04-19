@@ -118,8 +118,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.get('/login/github/start', passport.authenticate('github'));
 app.get('/login/github/end', passport.authenticate('github', { failureRedirect: '/login/error' }), function(req, res) {
+	res.status(303);
 	res.cookie('user', JSON.stringify(req.user), { signed: true, maxAge: CFG.LOGIN_MAX_AGE })
-	res.redirect('/#/local:save');
+	res.redirect(303, '/#/local:save');
 });
 
 function getConnectedUser(req) {
