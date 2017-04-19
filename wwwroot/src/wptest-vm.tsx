@@ -835,10 +835,21 @@ class SettingsDialogViewModel {
 	/** Whether the dialog is opened or closed */
 	isOpened$ = m.prop(false)
 
+	/** Cache for useMonaco$() */
+	private intenal_useMonaco : boolean;
+
 	/** Whether to use Monaco on this device or not */
 	useMonaco$ = m.prop2(
-		(v) => !localStorage.getItem('noMonaco'),
-		(v) => localStorage.setItem('noMonaco', v?'':'true')
+		(v) => {
+			if(typeof(this.intenal_useMonaco) == 'undefined') {
+				this.intenal_useMonaco = !localStorage.getItem('noMonaco')
+			}
+			return this.intenal_useMonaco;
+		},
+		(v) => {
+			this.intenal_useMonaco = !!v;
+			localStorage.setItem('noMonaco', v?'':'true')
+		}
 	);
 
 	/** Ask the viewmodel to log the user out */
