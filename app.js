@@ -80,6 +80,24 @@ require('mongodb').connect(CFG.MONGO_URL, function (err, new_db) {
 // enable signed cookies
 app.use(cookieParser(CFG.COOKIE_SECRET));
 
+// enable https by default if the current host is on https
+if(CFG.CURRENT_HOST.indexOf('https://') == 0) {
+	app.use(function(req, res, next) {
+		var isSecureLocally = req.secure;
+		var isSecureOnAzure = req.headers['x-arr-ssl'] !== undefined;
+		var isSecureOnAmazon = req.headers['x-forwarded-proto'] === 'https';
+		if(!isSecureLocally && !isSecureOnAzure && !isSecureOnAmazon) {
+			return res.status(308).redirect('https://' + req.hostname + req.url);
+		} else {
+			return next();
+		}
+	});
+	app.use(function(req, res, next) {
+		res.setHeader("Strict-Transport-Security", "max-age=31536000");
+		return next();
+	});
+}
+
 // enable github authentification
 passport.serializeUser((user, setCookie) => setCookie(null, JSON.stringify(user)));
 passport.deserializeUser((cookie, setUser) => setUser(null, JSON.parse(cookie)));
