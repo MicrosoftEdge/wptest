@@ -684,8 +684,9 @@ class ViewModel {
 
 	/** Resets the test model based on new data */
 	openFromJSON(newData?: TestDataModel) {
-		this.isLoading$(false)
-		Object.assign<TestDataModel,TestDataModel>(getTestData(), {
+		this.isLoading$(false);
+		this.watchValues = Object.create(null);
+		Object.assign<TestDataModel,TestDataModel>(tm.sourceModel, {
 			title: 'UntitledTest',
 			html: '',
 			css: '',
@@ -695,7 +696,12 @@ class ViewModel {
 			watchValues: []
 		});
 		if(newData) {
-			Object.assign<TestDataModel,TestDataModel>(getTestData(), newData);
+			Object.assign<TestDataModel,TestDataModel>(tm.sourceModel, newData);
+			if(newData.watchValues && newData.watchValues.length) {
+				for(var i = newData.watchValues.length; i--;) {
+					this.watchValues[newData.watches[i]] = newData.watchValues[i];
+				}
+			}
 		}
 		this.updateURL();
 		this.run();
