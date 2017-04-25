@@ -995,7 +995,11 @@ class ViewModel {
         sessionStorage.setItem('local:save', 'local:' + id);
         localStorage.setItem('local:' + id, JSON.stringify(data));
         localStorage.setItem('local:save', localStorage.getItem('local:' + id)); // in case the session gets lost
-        location.hash = "#/local:" + id;
+        suspendRedrawsOn(redraw => {
+            this.currentTestId$("local:" + id);
+            location.hash = "#/local:" + id;
+            redraw();
+        });
     }
     /** Saves the test model on the server */
     saveOnline() {
@@ -1041,7 +1045,8 @@ class ViewModel {
     /** Resets the test model based on new data */
     openFromJSON(newData) {
         this.isLoading$(false);
-        Object.assign(getTestData(), {
+        this.watchValues = Object.create(null);
+        Object.assign(tm.sourceModel, {
             title: 'UntitledTest',
             html: '',
             css: '',
@@ -1051,7 +1056,12 @@ class ViewModel {
             watchValues: []
         });
         if (newData) {
-            Object.assign(getTestData(), newData);
+            Object.assign(tm.sourceModel, newData);
+            if (newData.watchValues && newData.watchValues.length) {
+                for (var i = newData.watchValues.length; i--;) {
+                    this.watchValues[newData.watches[i]] = newData.watchValues[i];
+                }
+            }
         }
         this.updateURL();
         this.run();
@@ -1162,7 +1172,15 @@ class SettingsDialogViewModel {
         /** Whether the dialog is opened or closed */
         this.isOpened$ = m.prop(false);
         /** Whether to use Monaco on this device or not */
-        this.useMonaco$ = m.prop2((v) => !localStorage.getItem('noMonaco'), (v) => localStorage.setItem('noMonaco', v ? '' : 'true'));
+        this.useMonaco$ = m.prop2((v) => {
+            if (typeof (this.intenal_useMonaco) == 'undefined') {
+                this.intenal_useMonaco = !localStorage.getItem('noMonaco');
+            }
+            return this.intenal_useMonaco;
+        }, (v) => {
+            this.intenal_useMonaco = !!v;
+            localStorage.setItem('noMonaco', v ? '' : 'true');
+        });
         this.vm = vm;
     }
     /** Ask the viewmodel to log the user out */
@@ -1483,9 +1501,9 @@ var MonacoTextEditor = new Tag().with({
     React.createElement("monaco-text-editor-area", { id: a.id + 'Area' }),
     React.createElement(TextArea, { id: a.id + 'Textbox', "value$": a.value$, hidden: !!s.editor, onkeydown: enableTabInTextarea }),
     React.createElement("monaco-text-editor-placeholder", { hidden: a.value$().length > 0 }, ({
-        'javascript': '//<head>\n// HEAD CODE GOES HERE\n//</head>\n//\n// BODY CODE GOES HERE',
-        'html': '<!--<table>\n    <tr>\n        <td>HTML CODE</td>\n        <td>GOES HERE</td>\n    </tr>\n</table>-->',
-        'css': '/* CSS CODE GOES HERE         */\n/* table {                    */\n/*     border: 3px solid red; */\n/* }                          */'
+        'javascript': '// JAVASCRIPT CODE',
+        'html': '<!-- HTML MARKUP -->',
+        'css': '/* CSS STYLES */'
     }[a.language] || ''))));
 function enableTabInTextarea(e) {
     // tab but not ctrl+tab
