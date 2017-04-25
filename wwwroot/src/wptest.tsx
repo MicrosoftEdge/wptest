@@ -297,9 +297,9 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 		<TextArea id={a.id+'Textbox'} value$={a.value$} hidden={!!s.editor} onkeydown={enableTabInTextarea} />
 		<monaco-text-editor-placeholder hidden={a.value$().length>0}>{(
 			{
-				'javascript': '//<head>\n// HEAD CODE GOES HERE\n//</head>\n//\n// BODY CODE GOES HERE',
-				'html': '<!--<table>\n    <tr>\n        <td>HTML CODE</td>\n        <td>GOES HERE</td>\n    </tr>\n</table>-->',
-				'css': '/* CSS CODE GOES HERE         */\n/* table {                    */\n/*     border: 3px solid red; */\n/* }                          */'
+				'javascript': '// JAVASCRIPT CODE',
+				'html': '<!-- HTML MARKUP -->',
+				'css': '/* CSS STYLES */'
 			}[a.language] || '')
 		}</monaco-text-editor-placeholder>
 	</monaco-text-editor>
