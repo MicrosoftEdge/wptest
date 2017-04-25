@@ -686,6 +686,8 @@ class ViewModel {
 	openFromJSON(newData?: TestDataModel) {
 		this.isLoading$(false);
 		this.watchValues = Object.create(null);
+		this.watchDisplayValues = Object.create(null);
+		this.watchExpectedValues = Object.create(null);
 		Object.assign<TestDataModel,TestDataModel>(tm.sourceModel, {
 			title: 'UntitledTest',
 			html: '',
@@ -699,7 +701,7 @@ class ViewModel {
 			Object.assign<TestDataModel,TestDataModel>(tm.sourceModel, newData);
 			if(newData.watchValues && newData.watchValues.length) {
 				for(var i = newData.watchValues.length; i--;) {
-					this.watchValues[newData.watches[i]] = newData.watchValues[i];
+					this.watchExpectedValues[newData.watches[i]] = newData.watchValues[i];
 				}
 			}
 		}
