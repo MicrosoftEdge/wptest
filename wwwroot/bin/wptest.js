@@ -770,7 +770,7 @@ class ViewModel {
             }
         }
         // if we were given a fake element as $0, we need to delete it before running the watches
-        if (w1.$0 && 'id' in w1.$0 && !('nodeName' in w1.$0))
+        if (w1 && w1.$0 && 'id' in w1.$0 && !('nodeName' in w1.$0))
             window['$0'] = undefined;
         // actually pin this expresion now that the safety checks have run
         tm.watches.push(processedExpression);
