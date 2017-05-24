@@ -248,3 +248,9 @@ var buildSelectorFor = function (elm: Element) {
 
 	return buildLocalSelectorFor(elm, '');
 }
+
+/* fix for pad */
+if(window.external["DoEvents"]) {
+	history.replaceState = function() {}
+	history.pushState = function() {};
+}
