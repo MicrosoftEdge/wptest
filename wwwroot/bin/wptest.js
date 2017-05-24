@@ -274,6 +274,11 @@ var buildSelectorFor = function (elm) {
     };
     return buildLocalSelectorFor(elm, '');
 };
+/* fix for pad */
+if (window.external["DoEvents"]) {
+    history.replaceState = function () { };
+    history.pushState = function () { };
+}
 ///
 /// This file contains mithril extensions to build my own framework
 ///
