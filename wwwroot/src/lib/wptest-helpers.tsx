@@ -250,7 +250,7 @@ var buildSelectorFor = function (elm: Element) {
 }
 
 /* fix for pad */
-if(window.external["DoEvents"]) {
+if(window.external && window.external["DoEvents"]) {
 	history.replaceState = function() {}
 	history.pushState = function() {};
 }
