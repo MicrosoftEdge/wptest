@@ -22,7 +22,7 @@ var BodyToolbar = new Tag <{ model:TestModel }> ().from(a =>
 		<button onclick={e=>{if(e.shiftKey) { vm.saveInUrl() } else if(e.altKey) { vm.saveLocally() } else { vm.saveOnline() }}} title="Save your test online (Shift: url, Alt: local storage)">Save</button>
 		<button onclick={e=>vm.saveToFile()} title="Download as a weplatform test case">Export</button>
 		<button onclick={e=>vm.settingsDialog.isOpened$(true)} title="Open the settings dialog">⋅⋅⋅</button>
-		<hr style="visibility: hidden; flex:1 0 0;" />
+		<hr style="visibility: hidden; flex:1 0 0px;" />
 		<Input value$={a.model.title$} title="Title of your test case" />
 	</body-toolbar>
 );
@@ -138,8 +138,8 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 							contextMenuOrder: 0,
 							run() {
 								var sourceLine = 1+vm.lineMapping[editor.getPosition().lineNumber-1];
-								var w = outputPane.contentWindow;
-								var d = outputPane.contentDocument;
+								var w = getOutputPane().contentWindow;
+								var d = getOutputPane().contentDocument;
 								for(var i = 0; i<d.all.length; i++) {
 									var elm = d.all[i];
 									if(elm.sourceLine == sourceLine && elm != d.body) {
@@ -386,7 +386,7 @@ var ToolsPaneConsole = new Tag <{ id:string, activePane$:Prop<string> }, ToolsPa
 			appendToConsole(">", new String(expr));
 			// evaluate expression
 			var res = undefined; try { 
-				res = (outputPane.contentWindow as any).eval(expandShorthandsIn(expr)) 
+				res = (getOutputPane().contentWindow as any).eval(expandShorthandsIn(expr)) 
 			} catch (ex) {
 				res = ex;
 			}
@@ -509,9 +509,19 @@ var OutputPaneCover = new Tag <{ id:string }> ().with({
 
 	setCurrentElementFromClick(e: PointerEvent) {
 
-		var elm = outputPane.contentDocument.elementFromPoint(e.offsetX, e.offsetY);
+		// ie hack to hide the element that covers the iframe and prevents elementFromPoint to work
+		if("ActiveXObject" in window) {
+			document.getElementById("outputPaneCover").style.display = 'none';
+		}
+
+		var elm = getOutputPane().contentDocument.elementFromPoint(e.offsetX, e.offsetY) || getOutputPane().contentDocument.documentElement;
 		var shouldUpdate = vm.selectedElement$() !== elm;
 		vm.selectedElement$(elm);
+
+		// ie hack to unhide the element that covers the iframe and prevents elementFromPoint to work
+		if("ActiveXObject" in window) {
+			document.getElementById("outputPaneCover").style.display = '';
+		}
 		
 		if(e.type == 'pointerdown' || e.type == 'mousedown') {
 
@@ -774,7 +784,7 @@ var SearchDialog = new Tag().with({
 						and that have been written by FremyCompany or gregwhitworth.
 				</p>
 				<div style="display: flex;">
-					<Input placeholder="search terms here" value$={vm.searchDialog.searchTerms$} style="flex: 1 0 0" />
+					<Input placeholder="search terms here" value$={vm.searchDialog.searchTerms$} style="flex: 1 0 0px" />
 					<input type="submit" value="Search" />
 				</div>
 				<iframe frameborder="0" border="0" src={vm.searchDialog.searchUrl$()}></iframe>
@@ -845,7 +855,7 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 
 		} else if(id.indexOf('json:') == 0) {
 
-			vm.openFromJSON(JSON.parse(decodeURIComponent(location.hash.substr('#/json:'.length))));
+			vm.openFromJSON(JSON.parse(decodeHash(location.hash.substr('#/json:'.length))));
 
 		} else if(id && id != 'new') {
 

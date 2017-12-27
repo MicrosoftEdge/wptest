@@ -14,26 +14,26 @@ body > * {
 }
 
 body > top-row > *, body > bottom-row > * {
-	flex: 1 1 0;
+	flex: 1 1 0px;
 }
 
 /* [of="body"] { */
 
 	body-toolbar { flex: 0 0 40px; }
-	top-row { flex: 12 0 0; z-index: 1; }
-	bottom-row { flex: 13 0 0; background: #f5f5f5; }
+	top-row { flex: 12 0 0px; z-index: 1; }
+	bottom-row { flex: 13 0 0px; background: #f5f5f5; }
 
-	html-pane { flex: 1 1 0; position: relative; z-index: 3; }
-	css-pane { flex: 1 1 0; position: relative; z-index: 2; }
-	js-pane { flex: 1 1 0; position: relative; z-index: 1; }
-	tools-pane { flex: 1 1 0; position: relative; }
-	output-pane { flex: 1 1 0; position: relative; }
+	html-pane { flex: 1 1 0px; position: relative; z-index: 3; }
+	css-pane { flex: 1 1 0px; position: relative; z-index: 2; }
+	js-pane { flex: 1 1 0px; position: relative; z-index: 1; }
+	tools-pane { flex: 1 1 0px; position: relative; }
+	output-pane { flex: 1 1 0px; position: relative; }
 	html-pane[is-focused], css-pane[is-focused], js-pane[is-focused] { z-index: 9; }
 
 	body > dialog { 
 		background: rgba(0,0,0,0.7);
 		display: flex;
-		width: 100vw; height: 100vh;
+		width: 100vw; height: 100vh; top: 0px; left: 0px;
 		position: absolute;
 		z-index: 10000;
 		font-family: "Segoe UI", sans-serif;
@@ -128,7 +128,7 @@ tools-pane {
 	}
 
 	tools-pane-tabs {
-		flex: 1 1 0;
+		flex: 1 1 0px;
 		position: relative;
 	}
 
@@ -200,7 +200,7 @@ tools-pane-watches {
 	.watch-list > li { display: flex; flex-direction: row; margin: 0; padding: 0; height: 14pt; overflow: hidden; white-space: nowrap; }
 	.watch-list > li > input[type="checkbox"] { min-width: 13px; } /* chrome hack */
 	.watch-list > li > input[type="text"] { max-width: 200px; flex: 0 1 200px; padding: 0; -webkit-appearance: none; appearance: none; background: transparent; border: none; }
-	.watch-list > li > output { flex: 1; padding: 0; padding-left: 10px; -webkit-appearance: none; appearance: none; background: transparent; border: none; }
+	.watch-list > li > output { flex: 1 1 0px; padding: 0; padding-left: 10px; -webkit-appearance: none; appearance: none; background: transparent; border: none; }
 	.watch-list > li > output[assert=pass] { color: green; background: transparent; }
 	.watch-list > li > output[assert=fail] { color: yellow; background: red; }
 	.watch-list > li > input[type="text"][readonly], .watch-list > li > output { color: gray; }
@@ -216,7 +216,7 @@ pre[of="tools-pane-console"] {
 	padding: 10px; 
 	font-family: "Consolas", monospace; 
 	font-size: 10pt; 
-	flex: 1 1 0;
+	flex: 1 1 0px;
 	overflow: auto;
 	overflow-y: scroll;
 	overflow-x: hidden;
@@ -321,6 +321,9 @@ output-pane {
 
 	iframe[is-active] {
 		pointer-events: all;
+	}
+	iframe[of="output-pane"], :-ms-fullscreen {
+		pointer-events: all !important; /* ie hack to cancel the chrome hack */
 	}
 
 	output-pane-cover {

@@ -5,7 +5,11 @@
 /// <reference path="lib/model.d.ts" />
 
 /** The iframe in which vm.run() writes */
-declare var outputPane : HTMLIFrameElement;
+var getOutputPane = function() : HTMLIFrameElement {
+	var outputPane = document.getElementById('outputPane') as HTMLIFrameElement;
+	if(outputPane) { getOutputPane = function() { return outputPane; } }
+	return outputPane;
+}
 
 /** The console pane (legacy code only) */
 interface Window { jsPaneConsoleOutput?: HTMLPreElement }
@@ -32,6 +36,8 @@ function appendToConsole(logo, content) {
 
 /** Converts the javascript code of watches to standard javascript */
 function expandShorthandsIn(jsCode: string): string {
+	var describeCode = "(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))(";
+	if("ActiveXObject" in window) { /* ie hack */ describeCode = "(function(node){ return node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : '') })("; }
 	return (
 
 		jsCode
@@ -65,8 +71,8 @@ function expandShorthandsIn(jsCode: string): string {
 		.replace(/\.gBCR\(\)/g,'.getBoundingClientRect().right')
 		.replace(/\.gBCB\(\)/g,'.getBoundingClientRect().bottom')
 
-		.replace(/^describe\(/g,"(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))(")
-		.replace(/\bdescribe\(/g,"(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))(")
+		.replace(/^describe\(/g, describeCode)
+		.replace(/\bdescribe\(/g,describeCode)
 
 	);
 }
@@ -358,7 +364,7 @@ class ViewModel {
 		// possibly push elm on the stack of selected elements
 		if(elm) {
 			var w1 = window as any;
-			var w2 = outputPane.contentWindow as any;
+			var w2 = getOutputPane().contentWindow as any;
 			w2.$9 = w1.$9 = w1.$8;
 			w2.$8 = w1.$8 = w1.$7;
 			w2.$7 = w1.$7 = w1.$6;
@@ -379,7 +385,7 @@ class ViewModel {
 
 		// evalute the watches
 		var w1 = window as any;
-		var w2 = outputPane.contentWindow as any;
+		var w2 = getOutputPane().contentWindow as any;
 		for(var expr of [...tm.watches,...vm.autoWatches]) {
 			var result = ''; 
 			if(expr && (w1.$0 || !~expr.indexOf("$0"))) {
@@ -479,7 +485,8 @@ class ViewModel {
 		}
 
 		// bail out if we don't have loaded yet
-		if(!("outputPane" in window)) {
+		var outputPane = getOutputPane();
+		if(!outputPane) {
 			setTimeout(x => this.run(), 100);
 			return;
 		}
@@ -497,11 +504,17 @@ class ViewModel {
 			w2[id] = undefined;
 		}
 		this.idMappings.clear();
-	
+
+		// extract the doctype, if any (default to html5 doctype)
+		var doctype = "<!doctype html>";
+		var html = tm.html.replace(/<!doctype .*?>/gi, function(value) {
+			doctype = value; return '';
+		});
+		
 		// generate new document
 		var d = outputPane.contentWindow.document;
 		d.open();
-		d.write("<!doctype html>");
+		d.write(doctype);
 
 		// prepare the console hooks
 		outputPane.contentWindow.console.debug = function(...args) {
@@ -535,7 +548,6 @@ class ViewModel {
 		d.write("<style>" + tm.css + "</style>");
 		
 		attributeLines(0);
-		var html = tm.html;
 		var htmlLines = html.split("\n");
 		for(var lineIndex = 0; lineIndex < htmlLines.length;) {
 			d.writeln(htmlLines[lineIndex]);
@@ -557,10 +569,14 @@ class ViewModel {
 		for(var i = 10; i--;) {
 			var elm = recoverableElements[i];
 			if(elm) {
-				if(elm.id) {
-					w1['$'+i] = w2['$'+i] = w2.document.getElementById(elm.id);
-				} else if (elm.sourceLine) {
-					// TODO: try to match elements by sourceLine and tagName
+				try {
+					if(elm.id) {
+						w1['$'+i] = w2['$'+i] = w2.document.getElementById(elm.id);
+					} else if (elm.sourceLine) {
+						// TODO: try to match elements by sourceLine and tagName
+					}
+				} catch (ex) {
+					w1['$'+i] = w2['$'+i] = null;
 				}
 			}
 		}
@@ -590,8 +606,8 @@ class ViewModel {
 					var tagCounter = tagCounters[el.tagName] = 1 + (tagCounters[el.tagName]|0);
 					if(!el.id) {
 						var tagId = el.tagName.toLowerCase() + tagCounter;
-						if(!outputPane.contentWindow[tagId]) {
-							outputPane.contentWindow[tagId] = el;
+						if(!getOutputPane().contentWindow[tagId]) {
+							getOutputPane().contentWindow[tagId] = el;
 							el.sourceTagId = tagId;
 							vm.idMappings.add(tagId);
 							console.log(tagId, el);
@@ -605,7 +621,7 @@ class ViewModel {
 	/** Saves the test in a json url */
 	saveInUrl() {
 		suspendRedrawsOn(redraw => {
-			location.hash = "#/json:" + encodeURIComponent(JSON.stringify(getTestData()));
+			location.hash = "#/json:" + encodeHash(JSON.stringify(getTestData()));
 			vm.currentTestId$(location.hash.substr(2));
 			redraw();
 		})
@@ -637,7 +653,11 @@ class ViewModel {
 		// ensure test case title:
 		if(!tm.title || tm.title == "UntitledTest") {
 			try {
-				tm.title = prompt("Enter a title for your test", tm.title);
+				tm.title = prompt("Enter a title for your test (pressing cancel will abort save)", tm.title);
+				if(tm.title == null) {
+					tm.title = "UntitledTest";
+					return;
+				}
 			} catch (ex) {
 				// do nothing
 			}
@@ -720,12 +740,21 @@ class ViewModel {
 	saveToFile() {
 		var html = '';
 		function ln(...args) { html += (String.raw as any)(...args) + '\n'; }
-		ln`<!DOCTYPE html>`;
+		
+		// extract the doctype, if any (default to html5 doctype)
+		var doctype = "<!doctype html>";
+		var tm_html = tm.html.replace(/<!doctype .*?>\s*\r?\n?/gi, function(value) {
+			doctype = value.trim(); return '';
+		}).trim();	
+		
+		// start the document
+		ln`${doctype}`;
 
 		// ensure test case title:
 		if(!tm.title || tm.title == "UntitledTest") {
 			try {
 				tm.title = prompt("Enter a title for your test", tm.title);
+				if(!tm.title) { tm.title = 'UntitledTest'; }
 			} catch (ex) {
 				// do nothing
 			}
@@ -754,9 +783,9 @@ class ViewModel {
 		if(tm.css) {
 			ln`<style>${"\n\n"+tm.css+"\n\n"}</style>`;
 		}
-		if(tm.html) {
+		if(tm_html) {
 			ln``;
-			ln`${tm.html}`;
+			ln`${tm_html}`;
 			ln``;
 		}
 		if(tm.jsBody) {

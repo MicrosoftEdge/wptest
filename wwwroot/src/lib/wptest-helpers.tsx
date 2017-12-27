@@ -249,8 +249,42 @@ var buildSelectorFor = function (elm: Element) {
 	return buildLocalSelectorFor(elm, '');
 }
 
+function encodeHash(text) {
+	return text.replace(/\u200B/g, "\u200B\u200B").replace(/#/g, "\u200Bⵌ").replace(/%/g, "\u200B℅").replace(/\r/g,"\u200Br").replace(/\n/g,"\u200Bn").replace(/\t/g,"\u200Bt");
+}
+function decodeHash(text) {
+	return text.replace(/(?:%[a-f0-9]+)+/gim, function(t) { try { return decodeURIComponent(t) } catch (ex) { return t }}).replace(/\u200Bt/g,"\t").replace(/\u200Bn/g,"\n").replace(/\u200Br/g,"\r").replace(/\u200B℅/g,"%").replace(/\u200Bⵌ/g,"#").replace(/\u200B\u200B/g, "\u200B");
+}
+
 /* fix for pad */
-if(window.external && window.external["DoEvents"]) {
+if(window.external && ('DoEvents' in window.external)) {
 	history.replaceState = function() {}
 	history.pushState = function() {};
+}
+
+/* fix for ie */
+if(!Array.from) {
+	Array.from = function from(src,mapFn) {
+		var array = new Array(src.length);
+		for(var i = 0; i<src.length; i++) {
+			array[i] = mapFn ? mapFn(src[i]) : src[i];
+		}
+		return array;
+	} as any;
+}
+if(!Object.assign) {
+	Object.assign = function assign(target, source) {
+		for(var key in source) {
+			target[key] = source[key];
+		}
+	} as any;
+}
+if(!String.raw) {
+	String.raw = function(callSite, ...substitutions) {
+		let template = Array.from(callSite.raw);
+		return template.map((chunk, i) => {
+			if (callSite.raw.length <= i) { return chunk; }
+			return substitutions[i - 1] ? substitutions[i - 1] + chunk : chunk;
+		}).join('');	
+	} as any;
 }

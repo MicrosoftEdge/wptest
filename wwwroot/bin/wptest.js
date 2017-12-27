@@ -1,3 +1,11 @@
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
 ///
 /// This files contains a few helpers just because I am lazy :)
 ///
@@ -8,15 +16,15 @@ var $ = document.querySelector.bind(document);
 var $$ = document.querySelectorAll.bind(document);
 var eFP = document.elementFromPoint.bind(document);
 var gCS = window.getComputedStyle.bind(window);
-var gBCW = elm => elm.getBoundingClientRect().width;
-var gBCH = elm => elm.getBoundingClientRect().height;
-var gBCT = elm => elm.getBoundingClientRect().top;
-var gBCL = elm => elm.getBoundingClientRect().left;
-var gBCB = elm => elm.getBoundingClientRect().bottom;
-var gBCR = elm => elm.getBoundingClientRect().right;
+var gBCW = function (elm) { return elm.getBoundingClientRect().width; };
+var gBCH = function (elm) { return elm.getBoundingClientRect().height; };
+var gBCT = function (elm) { return elm.getBoundingClientRect().top; };
+var gBCL = function (elm) { return elm.getBoundingClientRect().left; };
+var gBCB = function (elm) { return elm.getBoundingClientRect().bottom; };
+var gBCR = function (elm) { return elm.getBoundingClientRect().right; };
 var rAF = window.requestAnimationFrame.bind(window);
 var describe = function (elm) {
-    return elm.nodeName + (elm.id ? `#${elm.id}` : '') + (elm.classList.length ? `.${elm.classList[0]}` : '');
+    return elm.nodeName + (elm.id ? "#" + elm.id : '') + (elm.classList.length ? "." + elm.classList[0] : '');
 };
 var convertObjectToDescription = function (arg) {
     if (arg === null)
@@ -36,7 +44,7 @@ var convertObjectToDescription = function (arg) {
     }
     if (typeof arg == 'function') {
         try {
-            return `${arg}`;
+            return "" + arg;
         }
         catch (ex) { }
         return '[object Function]';
@@ -48,7 +56,7 @@ var convertObjectToDescription = function (arg) {
     catch (ex) { }
     ;
     try {
-        str = `${arg}`;
+        str = "" + arg;
     }
     catch (ex) { }
     try {
@@ -68,7 +76,7 @@ var convertObjectToDescription = function (arg) {
     }
     if (tag && (typeof (arg) == 'object' || typeof (arg) == 'symbol')) {
         try {
-            return [tag, str, jsn].filter(x => x).join(' ');
+            return [tag, str, jsn].filter(function (x) { return x; }).join(' ');
         }
         catch (ex) { }
     }
@@ -81,44 +89,41 @@ var convertObjectToDescription = function (arg) {
     return "[object]";
 };
 var buildSelectorFor = function (elm) {
-    var isValidPair = (selector, elm) => {
+    var isValidPair = function (selector, elm) {
         var matches = elm.ownerDocument.querySelectorAll(selector);
         return (matches.length == 1) && (matches[0] === elm);
     };
-    var isValid = (selector) => {
+    var isValid = function (selector) {
         return isValidPair(selector, elm);
     };
-    var getPossibleAttributesFor = (elm) => [
-        // #id
-        ...getIdsOf(elm).map(a => [
-            { selector: `#${escapeIdentForCSS(a)}`, slot: 'id' }
-        ]),
+    var getPossibleAttributesFor = function (elm) { return getIdsOf(elm).map(function (a) { return [
+        { selector: "#" + escapeIdentForCSS(a), slot: 'id' }
+    ]; }).concat([
         // tagname
         [
             { selector: getTagNameOf(elm), slot: 'tag' }
-        ],
-        // .class
-        ...getClassesOf(elm).map(c => [
-            { selector: `.${escapeIdentForCSS(c)}`, slot: 'class' }
-        ]),
-        // tagname|#id ... [attribute]
-        ...getAttributesOf(elm).map(a => [
-            elm.id ? { selector: `#${escapeIdentForCSS(a)}`, slot: 'id' } : { selector: getTagNameOf(elm), slot: 'tag' },
-            { selector: `[${a}]`, slot: 'class' } // atributes should never be non-css, and some have att=value
-        ]),
+        ]
+    ], getClassesOf(elm).map(function (c) { return [
+        { selector: "." + escapeIdentForCSS(c), slot: 'class' }
+    ]; }), getAttributesOf(elm).map(function (a) { return [
+        elm.id ? { selector: "#" + escapeIdentForCSS(a), slot: 'id' } : { selector: getTagNameOf(elm), slot: 'tag' },
+        { selector: "[" + a + "]", slot: 'class' } // atributes should never be non-css, and some have att=value
+    ]; }), [
         // tagname ... :nth-of-type(<int>)
         [
             { selector: getTagNameOf(elm), slot: 'tag' },
-            { selector: `:nth-of-type(${getNthTypeOf(elm)})`, slot: 'pseudo' }
+            { selector: ":nth-of-type(" + getNthTypeOf(elm) + ")", slot: 'pseudo' }
         ],
-    ];
-    var buildSelectorFrom = (input) => {
+    ]); };
+    var buildSelectorFrom = function (input) {
         var tag = '';
         var ids = '';
         var cls = '';
         var pse = '';
-        for (var ss of input) {
-            for (var s of ss) {
+        for (var _i = 0, input_1 = input; _i < input_1.length; _i++) {
+            var ss = input_1[_i];
+            for (var _a = 0, ss_1 = ss; _a < ss_1.length; _a++) {
+                var s = ss_1[_a];
                 switch (s.slot) {
                     case 'tag': {
                         tag = tag || s.selector;
@@ -141,7 +146,7 @@ var buildSelectorFor = function (elm) {
         }
         return tag + ids + cls + pse;
     };
-    var escapeIdentForCSS = (item) => ((item.split('')).map(function (character) {
+    var escapeIdentForCSS = function (item) { return ((item.split('')).map(function (character) {
         if (character === ':') {
             return "\\" + (':'.charCodeAt(0).toString(16).toUpperCase()) + " ";
         }
@@ -151,9 +156,9 @@ var buildSelectorFor = function (elm) {
         else {
             return encodeURIComponent(character).replace(/\%/g, '\\');
         }
-    }).join(''));
-    var getTagNameOf = (elm) => escapeIdentForCSS(elm.tagName.toLowerCase());
-    var getNthTypeOf = (elm) => {
+    }).join('')); };
+    var getTagNameOf = function (elm) { return escapeIdentForCSS(elm.tagName.toLowerCase()); };
+    var getNthTypeOf = function (elm) {
         var index = 0, cur = elm;
         do {
             if (cur.tagName == elm.tagName) {
@@ -162,17 +167,17 @@ var buildSelectorFor = function (elm) {
         } while (cur = cur.previousElementSibling);
         return index;
     };
-    var getIdsOf = (elm) => {
+    var getIdsOf = function (elm) {
         return elm.id ? [elm.id] : [];
     };
-    var getClassesOf = (elm) => {
+    var getClassesOf = function (elm) {
         var result = [];
         for (var i = 0; i < elm.classList.length; i++) {
             result.push(elm.classList[i]);
         }
         return result;
     };
-    var getAttributesOf = (elm) => {
+    var getAttributesOf = function (elm) {
         var result = [];
         for (var i = 0; i < elm.attributes.length; i++) {
             switch (elm.attributes[i].name.toLowerCase()) {
@@ -192,7 +197,7 @@ var buildSelectorFor = function (elm) {
         }
         return result;
     };
-    var buildLocalSelectorFor = (elm, prelude) => {
+    var buildLocalSelectorFor = function (elm, prelude) {
         // let's try to build a selector using the element only
         var options = getPossibleAttributesFor(elm);
         if (isValid(prelude + buildSelectorFrom(options))) {
@@ -208,26 +213,26 @@ var buildSelectorFor = function (elm) {
             }
             // build the minimal selector
             var new_opts = sav_opts.length ? cur_opts.concat(sav_opts) : cur_opts;
-            let elementSelector = buildSelectorFrom(new_opts);
+            var elementSelector = buildSelectorFrom(new_opts);
             // if we could not remove :nth-of-type and have no prelude, we might want to add a prelude about the parent
-            let parent = elm.parentElement;
+            var parent_1 = elm.parentElement;
             if (!prelude && ~elementSelector.indexOf(':nth-of-type')) {
-                if (parent) {
+                if (parent_1) {
                     // this will help disambiguate things a bit
-                    if (parent.id) {
-                        prelude = `#${escapeIdentForCSS(parent.id)} > `;
+                    if (parent_1.id) {
+                        prelude = "#" + escapeIdentForCSS(parent_1.id) + " > ";
                     }
-                    else if (~(['HTML', 'BODY', 'HEAD', 'MAIN'].indexOf(parent.tagName))) {
-                        prelude = `${escapeIdentForCSS(getTagNameOf(parent))} > `;
+                    else if (~(['HTML', 'BODY', 'HEAD', 'MAIN'].indexOf(parent_1.tagName))) {
+                        prelude = escapeIdentForCSS(getTagNameOf(parent_1)) + " > ";
                     }
-                    else if (parent.classList.length) {
-                        prelude = `${escapeIdentForCSS(getTagNameOf(parent))}.${escapeIdentForCSS(parent.classList[0])} > `;
+                    else if (parent_1.classList.length) {
+                        prelude = escapeIdentForCSS(getTagNameOf(parent_1)) + "." + escapeIdentForCSS(parent_1.classList[0]) + " > ";
                     }
                     else {
-                        prelude = `${escapeIdentForCSS(getTagNameOf(parent))} > `;
+                        prelude = escapeIdentForCSS(getTagNameOf(parent_1)) + " > ";
                     }
                     // maybe we can even remove the nth-of-type now?
-                    let simplifiedElementSelector = elementSelector.replace(/:nth-of-type\(.*?\)/, '');
+                    var simplifiedElementSelector = elementSelector.replace(/:nth-of-type\(.*?\)/, '');
                     if (isValid(prelude + simplifiedElementSelector)) {
                         elementSelector = simplifiedElementSelector;
                     }
@@ -245,11 +250,11 @@ var buildSelectorFor = function (elm) {
                 return ':root';
             }
             // let's try to find an id parent which can narrow down to one element only
-            let generalPrelude = '';
-            let cur = elm.parentElement;
+            var generalPrelude = '';
+            var cur = elm.parentElement;
             while (cur = cur.parentElement) {
                 if (cur.id) {
-                    let r = buildLocalSelectorFor(elm, `#${escapeIdentForCSS(cur.id)} `);
+                    var r = buildLocalSelectorFor(elm, "#" + escapeIdentForCSS(cur.id) + " ");
                     if (r)
                         return r;
                     break;
@@ -259,8 +264,8 @@ var buildSelectorFor = function (elm) {
             cur = elm.parentElement;
             while (cur = cur.parentElement) {
                 if (cur.classList.length) {
-                    for (let ci = 0; ci < cur.classList.length; ci++) {
-                        let r = buildLocalSelectorFor(elm, `.${escapeIdentForCSS(cur.classList[ci])} `);
+                    for (var ci = 0; ci < cur.classList.length; ci++) {
+                        var r = buildLocalSelectorFor(elm, "." + escapeIdentForCSS(cur.classList[ci]) + " ");
                         if (r)
                             return r;
                     }
@@ -268,16 +273,59 @@ var buildSelectorFor = function (elm) {
             }
             // let's just append this selector to a unique selector to its parent
             //TODO: actually, we should filter based on whether we find the element uniquely instead, not its parent
-            let parentSelector = buildSelectorFor(elm.parentElement);
+            var parentSelector = buildSelectorFor(elm.parentElement);
             return buildLocalSelectorFor(elm, parentSelector + " > ");
         }
     };
     return buildLocalSelectorFor(elm, '');
 };
+function encodeHash(text) {
+    return text.replace(/\u200B/g, "\u200B\u200B").replace(/#/g, "\u200Bⵌ").replace(/%/g, "\u200B℅").replace(/\r/g, "\u200Br").replace(/\n/g, "\u200Bn").replace(/\t/g, "\u200Bt");
+}
+function decodeHash(text) {
+    return text.replace(/(?:%[a-f0-9]+)+/gim, function (t) { try {
+        return decodeURIComponent(t);
+    }
+    catch (ex) {
+        return t;
+    } }).replace(/\u200Bt/g, "\t").replace(/\u200Bn/g, "\n").replace(/\u200Br/g, "\r").replace(/\u200B℅/g, "%").replace(/\u200Bⵌ/g, "#").replace(/\u200B\u200B/g, "\u200B");
+}
 /* fix for pad */
-if (window.external["DoEvents"]) {
+if (window.external && ('DoEvents' in window.external)) {
     history.replaceState = function () { };
     history.pushState = function () { };
+}
+/* fix for ie */
+if (!Array.from) {
+    Array.from = function from(src, mapFn) {
+        var array = new Array(src.length);
+        for (var i = 0; i < src.length; i++) {
+            array[i] = mapFn ? mapFn(src[i]) : src[i];
+        }
+        return array;
+    };
+}
+if (!Object.assign) {
+    Object.assign = function assign(target, source) {
+        for (var key in source) {
+            target[key] = source[key];
+        }
+    };
+}
+if (!String.raw) {
+    String.raw = function (callSite) {
+        var substitutions = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            substitutions[_i - 1] = arguments[_i];
+        }
+        var template = Array.from(callSite.raw);
+        return template.map(function (chunk, i) {
+            if (callSite.raw.length <= i) {
+                return chunk;
+            }
+            return substitutions[i - 1] ? substitutions[i - 1] + chunk : chunk;
+        }).join('');
+    };
 }
 ///
 /// This file contains mithril extensions to build my own framework
@@ -328,9 +376,9 @@ m.prop2 = function (get, set) {
 };
 m.addProps = function (o) {
     var r = Object.create(o);
-    for (let key in o) {
+    var _loop_1 = function (key) {
         if (Object.prototype.hasOwnProperty.call(o, key)) {
-            Object.defineProperty(r, key, { get() { return o[key]; }, set(v) { o[key] = v; redrawIfReady(); } });
+            Object.defineProperty(r, key, { get: function () { return o[key]; }, set: function (v) { o[key] = v; redrawIfReady(); } });
             r[key + '$'] = function (v) {
                 if (arguments.length == 0) {
                     return o[key];
@@ -340,28 +388,35 @@ m.addProps = function (o) {
                 }
             };
         }
+    };
+    for (var key in o) {
+        _loop_1(key);
     }
     r.sourceModel = o;
     return r;
 };
 React = {
-    createElement(t, a, ...children) {
+    createElement: function (t, a) {
+        var children = [];
+        for (var _i = 2; _i < arguments.length; _i++) {
+            children[_i - 2] = arguments[_i];
+        }
         return typeof (t) == 'string' ? m(t, a, children) : m(t(), a, children);
     }
 };
-class Tag {
-    constructor() {
+var Tag = (function () {
+    function Tag() {
         this.prototype = Object.prototype;
     }
-    with(prototype) {
+    Tag.prototype.with = function (prototype) {
         this.prototype = prototype;
         return this;
-    }
-    from(view) {
+    };
+    Tag.prototype.from = function (view) {
         var jsTagImplementation = {
             __proto__: this.prototype,
             state: Object.create(null),
-            view(n) {
+            view: function (n) {
                 var output = view(n.attrs, n.children, this);
                 if (output instanceof Array) {
                     // no single wrapper --> no attribute generation
@@ -379,7 +434,8 @@ class Tag {
                 return output;
                 //-------------------------------------------------------------
                 function iterateChildrenArray(nodes) {
-                    for (var child of nodes) {
+                    for (var _i = 0, nodes_1 = nodes; _i < nodes_1.length; _i++) {
+                        var child = nodes_1[_i];
                         if (child instanceof Array) {
                             iterateChildrenArray(child);
                         }
@@ -399,9 +455,10 @@ class Tag {
                 }
             }
         };
-        return () => jsTagImplementation;
-    }
-}
+        return function () { return jsTagImplementation; };
+    };
+    return Tag;
+}());
 function cachedCast(input$, convertInput) {
     var currentInp = undefined;
     var currentOut = undefined;
@@ -433,12 +490,14 @@ function cachedDualCast(input$, convertInput, convertOutput) {
         }
     };
 }
-function bindTo(x, attr = "value") {
+function bindTo(x, attr) {
+    if (attr === void 0) { attr = "value"; }
     return m.withAttr(attr, x);
 }
 function attributesOf(a) {
     var o = Object.create(null);
-    for (var key of Object.getOwnPropertyNames(a)) {
+    for (var _i = 0, _a = Object.getOwnPropertyNames(a); _i < _a.length; _i++) {
+        var key = _a[_i];
         if (key[key.length - 1] != '$') {
             o[key] = a[key];
         }
@@ -450,13 +509,21 @@ function attributesOf(a) {
 ///
 /// <reference path="lib/wptest-framework.tsx" />
 /// <reference path="lib/model.d.ts" />
+/** The iframe in which vm.run() writes */
+var getOutputPane = function () {
+    var outputPane = document.getElementById('outputPane');
+    if (outputPane) {
+        getOutputPane = function () { return outputPane; };
+    }
+    return outputPane;
+};
 function appendToConsole(logo, content) {
     var jsPaneConsoleOutput = window.jsPaneConsoleOutput;
     if (jsPaneConsoleOutput) {
         var textContent = convertObjectToDescription(content);
         var logoSpan = document.createElement("span");
         {
-            logoSpan.textContent = `${logo} `;
+            logoSpan.textContent = logo + " ";
         }
         var contentSpan = document.createElement("span");
         {
@@ -475,6 +542,10 @@ function appendToConsole(logo, content) {
 }
 /** Converts the javascript code of watches to standard javascript */
 function expandShorthandsIn(jsCode) {
+    var describeCode = "(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))(";
+    if ("ActiveXObject" in window) {
+        describeCode = "(function(node){ return node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : '') })(";
+    }
     return (jsCode
         .replace(/^\$\$\(/g, 'document.querySelectorAll(')
         .replace(/^\$\(/g, 'document.querySelector(')
@@ -500,8 +571,8 @@ function expandShorthandsIn(jsCode) {
         .replace(/\.gBCT\(\)/g, '.getBoundingClientRect().top')
         .replace(/\.gBCR\(\)/g, '.getBoundingClientRect().right')
         .replace(/\.gBCB\(\)/g, '.getBoundingClientRect().bottom')
-        .replace(/^describe\(/g, "(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))(")
-        .replace(/\bdescribe\(/g, "(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))("));
+        .replace(/^describe\(/g, describeCode)
+        .replace(/\bdescribe\(/g, describeCode));
 }
 /** The data of the test being written (as ViewModel) */
 var tm = m.addProps({
@@ -514,21 +585,22 @@ var tm = m.addProps({
     watchValues: []
 });
 /** The data of the test being written (as JSON) */
-var getTestData = () => {
+var getTestData = function () {
     // get the data
     var tmData = tm.sourceModel;
     // sync the watchValues before returning the data
-    tmData.watchValues = tmData.watches.map(expr => vm.watchExpectedValues[expr]);
+    tmData.watchValues = tmData.watches.map(function (expr) { return vm.watchExpectedValues[expr]; });
     // return the data
     return tmData;
 };
 /** The data used to represent the current state of the view */
-class ViewModel {
-    constructor() {
+var ViewModel = (function () {
+    function ViewModel() {
         // ===================================================
         // github state (readonly)
         // ===================================================
-        this.githubUserData$ = cachedCast(() => document.cookie, cookie => {
+        var _this = this;
+        this.githubUserData$ = cachedCast(function () { return document.cookie; }, function (cookie) {
             // read data from the user cookie (and trust it)
             var userCookie = decodeURIComponent(document.cookie.replace(new RegExp("(?:(?:^|.*;)\\s*" + encodeURIComponent('user').replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=\\s*([^;]*).*$)|^.*$"), "$1")) || 'null';
             // parse that data into an object
@@ -541,10 +613,10 @@ class ViewModel {
             // return the result
             return user;
         });
-        this.githubIsConnected$ = cachedCast(this.githubUserData$, user => !!user);
-        this.githubUserName$ = cachedCast(this.githubUserData$, user => user ? user.username : "anonymous");
-        this.githubUserId$ = cachedCast(this.githubUserData$, user => user ? user.id : null);
-        this.githubUserEmail$ = cachedCast(this.githubUserData$, user => user ? user.email : null);
+        this.githubIsConnected$ = cachedCast(this.githubUserData$, function (user) { return !!user; });
+        this.githubUserName$ = cachedCast(this.githubUserData$, function (user) { return user ? user.username : "anonymous"; });
+        this.githubUserId$ = cachedCast(this.githubUserData$, function (user) { return user ? user.id : null; });
+        this.githubUserEmail$ = cachedCast(this.githubUserData$, function (user) { return user ? user.email : null; });
         // ===================================================
         // editor settings
         // ===================================================
@@ -606,9 +678,9 @@ class ViewModel {
             "describe($0.offsetParent)",
             "$0.offsetLeft",
             "$0.offsetTop",
-        ].concat((e => {
+        ].concat((function (e) {
             var ds = Array.from(getComputedStyle(document.documentElement)).sort();
-            return ds.map(prop => `gCS($0)['${prop}']`);
+            return ds.map(function (prop) { return "gCS($0)['" + prop + "']"; });
         })());
         /** Cache of the values of the watches (as js object) */
         this.watchValues = Object.create(null);
@@ -621,14 +693,14 @@ class ViewModel {
         /** The text currently used as display-filter input for the watches */
         this.watchFilterText$ = m.prop("");
         /** The actual test used as display-filter for the watches (readonly) */
-        this.watchFilter$ = cachedCast(() => this.watchFilterText$(), (filterText) => {
+        this.watchFilter$ = cachedCast(function () { return _this.watchFilterText$(); }, function (filterText) {
             // if no text in the search box, every watch matches
-            var isTextMatching = (expr) => true;
+            var isTextMatching = function (expr) { return true; };
             // convert the text into a matcher
             if (filterText.length > 0) {
                 // normal case = indexOf search
                 var filterTextLC = filterText.toLowerCase();
-                isTextMatching = expr => !!~expr.toLowerCase().indexOf(filterTextLC);
+                isTextMatching = function (expr) { return !!~expr.toLowerCase().indexOf(filterTextLC); };
                 // special case if regexp is typed
                 if (filterText.indexOf('/') == 0) {
                     var reg = null;
@@ -641,7 +713,7 @@ class ViewModel {
                     }
                     catch (ex) { }
                     if (reg instanceof RegExp) {
-                        isTextMatching = expr => reg.test(expr);
+                        isTextMatching = function (expr) { return reg.test(expr); };
                     }
                 }
             }
@@ -682,7 +754,7 @@ class ViewModel {
         /** Whether the test model is still waiting on some data from the server */
         this.isLoading$ = m.prop(false);
     }
-    setupExpectedValueFor(expr) {
+    ViewModel.prototype.setupExpectedValueFor = function (expr) {
         // get the current expected value if any
         var currentExpectedValue = this.watchExpectedValues[expr];
         // get the current watch value if any
@@ -741,9 +813,9 @@ class ViewModel {
         // invalidate the current rendering (if necessary)
         vm.lastWatchUpdateTime$(performance.now());
         m.redraw();
-    }
+    };
     /** Adds an expression to the list of watches (eventually bootstrapped with a value) */
-    addPinnedWatch(expr, value) {
+    ViewModel.prototype.addPinnedWatch = function (expr, value) {
         // check that we have a base on which pinning this expression makes sense
         var processedExpression = expr;
         if (~expr.indexOf("$0")) {
@@ -777,7 +849,7 @@ class ViewModel {
         if (arguments.length >= 2) {
             // a value was provided for us, let's use it
             vm.watchValues[processedExpression] = value;
-            vm.watchDisplayValues[processedExpression] = `${value}`; // TODO
+            vm.watchDisplayValues[processedExpression] = "" + value; // TODO
         }
         else if (expr in vm.watchValues) {
             // we just pinned some auto watch
@@ -790,21 +862,21 @@ class ViewModel {
             vm.refreshWatches();
         }
         this.lastWatchUpdateTime$(performance.now());
-    }
+    };
     /** Removes an expression from the list of watches */
-    removePinnedWatch(expr) {
+    ViewModel.prototype.removePinnedWatch = function (expr) {
         var index = tm.watches.indexOf(expr);
         if (index >= 0) {
             tm.watches.splice(index, 1);
         }
         this.lastWatchUpdateTime$(performance.now());
-    }
+    };
     /** Recomputes the values and display values of watches */
-    refreshWatches(elm) {
+    ViewModel.prototype.refreshWatches = function (elm) {
         // possibly push elm on the stack of selected elements
         if (elm) {
             var w1 = window;
-            var w2 = outputPane.contentWindow;
+            var w2 = getOutputPane().contentWindow;
             w2.$9 = w1.$9 = w1.$8;
             w2.$8 = w1.$8 = w1.$7;
             w2.$7 = w1.$7 = w1.$6;
@@ -823,47 +895,49 @@ class ViewModel {
         this.hiddenAutoWatches = Object.create(null);
         // evalute the watches
         var w1 = window;
-        var w2 = outputPane.contentWindow;
-        for (var expr of [...tm.watches, ...vm.autoWatches]) {
+        var w2 = getOutputPane().contentWindow;
+        for (var _i = 0, _a = tm.watches.concat(vm.autoWatches); _i < _a.length; _i++) {
+            var expr = _a[_i];
             var result = '';
             if (expr && (w1.$0 || !~expr.indexOf("$0"))) {
                 try {
                     result = w2.eval(expandShorthandsIn(expr));
                 }
                 catch (ex) {
-                    result = '!!!' + (ex.message ? ex.message : `${ex}`);
+                    result = '!!!' + (ex.message ? ex.message : "" + ex);
                 }
             }
             // output the current value
             vm.watchValues[expr] = result;
-            vm.watchDisplayValues[expr] = `${result}`; // TODO
+            vm.watchDisplayValues[expr] = "" + result; // TODO
         }
         this.lastWatchUpdateTime$(performance.now());
-    }
+    };
     // ===================================================
     // general dialog settings
     // ===================================================
-    closeAllDialogs() {
+    ViewModel.prototype.closeAllDialogs = function () {
         this.selectorGenerationDialog.isOpened$(false);
         this.searchDialog.isOpened$(false);
         this.welcomeDialog.isOpened$(false);
         this.settingsDialog.isOpened$(false);
-    }
+    };
     /** Removes the user cookie */
-    logOut() {
+    ViewModel.prototype.logOut = function () {
         document.cookie = 'user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         redrawIfReady();
-    }
+    };
     /** Redirects to the login page */
-    logIn() {
+    ViewModel.prototype.logIn = function () {
         var currentId = this.currentTestId$();
         if (currentId != 'local:save' && currentId != 'new') {
             sessionStorage.setItem('local:save', currentId);
         }
         location.href = '/login/github/start';
-    }
+    };
     /** Refreshes the output frame with the latest source code */
-    run() {
+    ViewModel.prototype.run = function () {
+        var _this = this;
         // hide outdated element outline
         this.isPicking$(false);
         this.selectedElement$(null);
@@ -871,8 +945,9 @@ class ViewModel {
             window.jsPaneConsoleOutput.innerHTML = '';
         }
         // bail out if we don't have loaded yet
-        if (!("outputPane" in window)) {
-            setTimeout(x => this.run(), 100);
+        var outputPane = getOutputPane();
+        if (!outputPane) {
+            setTimeout(function (x) { return _this.run(); }, 100);
             return;
         }
         // remove any $ values since we are going to clear the inner document
@@ -884,37 +959,68 @@ class ViewModel {
             recoverableElements.unshift(w1['$' + i]);
             w1['$' + i] = w2['$' + i] = undefined;
         }
-        for (var id of this.idMappings) {
+        for (var _i = 0, _a = this.idMappings; _i < _a.length; _i++) {
+            var id = _a[_i];
             w2[id] = undefined;
         }
         this.idMappings.clear();
+        // extract the doctype, if any (default to html5 doctype)
+        var doctype = "<!doctype html>";
+        var html = tm.html.replace(/<!doctype .*?>/gi, function (value) {
+            doctype = value;
+            return '';
+        });
         // generate new document
         var d = outputPane.contentWindow.document;
         d.open();
-        d.write("<!doctype html>");
+        d.write(doctype);
         // prepare the console hooks
-        outputPane.contentWindow.console.debug = function (...args) {
-            args.forEach(arg => appendToConsole('-', arg));
+        outputPane.contentWindow.console.debug = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            args.forEach(function (arg) { return appendToConsole('-', arg); });
             console.debug.apply(console, args);
         };
-        outputPane.contentWindow.console.log = function (...args) {
-            args.forEach(arg => appendToConsole('-', arg));
+        outputPane.contentWindow.console.log = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            args.forEach(function (arg) { return appendToConsole('-', arg); });
             console.log.apply(console, args);
         };
-        outputPane.contentWindow.console.dir = function (...args) {
-            args.forEach(arg => appendToConsole('-', arg));
+        outputPane.contentWindow.console.dir = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            args.forEach(function (arg) { return appendToConsole('-', arg); });
             console.dir.apply(console, args);
         };
-        outputPane.contentWindow.console.info = function (...args) {
-            args.forEach(arg => appendToConsole('i', arg));
+        outputPane.contentWindow.console.info = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            args.forEach(function (arg) { return appendToConsole('i', arg); });
             console.info.apply(console, args);
         };
-        outputPane.contentWindow.console.warn = function (...args) {
-            args.forEach(arg => appendToConsole('!', arg));
+        outputPane.contentWindow.console.warn = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            args.forEach(function (arg) { return appendToConsole('!', arg); });
             console.warn.apply(console, args);
         };
-        outputPane.contentWindow.console.error = function (...args) {
-            args.forEach(arg => appendToConsole('‼️', arg));
+        outputPane.contentWindow.console.error = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            args.forEach(function (arg) { return appendToConsole('‼️', arg); });
             console.error.apply(console, args);
         };
         // write the document content
@@ -922,7 +1028,6 @@ class ViewModel {
         d.write("<script>" + tm.jsHead + "<" + "/script>");
         d.write("<style>" + tm.css + "</style>");
         attributeLines(0);
-        var html = tm.html;
         var htmlLines = html.split("\n");
         for (var lineIndex = 0; lineIndex < htmlLines.length;) {
             d.writeln(htmlLines[lineIndex]);
@@ -931,7 +1036,7 @@ class ViewModel {
         d.write("<script>" + tm.jsBody + "<" + "/script>");
         d.close();
         // reset the line mapping
-        vm.lineMapping = htmlLines.map((l, i) => i);
+        vm.lineMapping = htmlLines.map(function (l, i) { return i; });
         vm.lineMappingLineCount = htmlLines.length;
         // create short names for all elements without custom id
         attributeIds(this);
@@ -939,11 +1044,16 @@ class ViewModel {
         for (var i = 10; i--;) {
             var elm = recoverableElements[i];
             if (elm) {
-                if (elm.id) {
-                    w1['$' + i] = w2['$' + i] = w2.document.getElementById(elm.id);
+                try {
+                    if (elm.id) {
+                        w1['$' + i] = w2['$' + i] = w2.document.getElementById(elm.id);
+                    }
+                    else if (elm.sourceLine) {
+                        // TODO: try to match elements by sourceLine and tagName
+                    }
                 }
-                else if (elm.sourceLine) {
-                    // TODO: try to match elements by sourceLine and tagName
+                catch (ex) {
+                    w1['$' + i] = w2['$' + i] = null;
                 }
             }
         }
@@ -970,8 +1080,8 @@ class ViewModel {
                     var tagCounter = tagCounters[el.tagName] = 1 + (tagCounters[el.tagName] | 0);
                     if (!el.id) {
                         var tagId = el.tagName.toLowerCase() + tagCounter;
-                        if (!outputPane.contentWindow[tagId]) {
-                            outputPane.contentWindow[tagId] = el;
+                        if (!getOutputPane().contentWindow[tagId]) {
+                            getOutputPane().contentWindow[tagId] = el;
                             el.sourceTagId = tagId;
                             vm.idMappings.add(tagId);
                             console.log(tagId, el);
@@ -980,17 +1090,18 @@ class ViewModel {
                 }
             }
         }
-    }
+    };
     /** Saves the test in a json url */
-    saveInUrl() {
-        suspendRedrawsOn(redraw => {
-            location.hash = "#/json:" + encodeURIComponent(JSON.stringify(getTestData()));
+    ViewModel.prototype.saveInUrl = function () {
+        suspendRedrawsOn(function (redraw) {
+            location.hash = "#/json:" + encodeHash(JSON.stringify(getTestData()));
             vm.currentTestId$(location.hash.substr(2));
             redraw();
         });
-    }
+    };
     /** Saves the test model in the localStorage */
-    saveLocally() {
+    ViewModel.prototype.saveLocally = function () {
+        var _this = this;
         var data = getTestData();
         var id = '';
         var idLetters = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -1000,18 +1111,23 @@ class ViewModel {
         sessionStorage.setItem('local:save', 'local:' + id);
         localStorage.setItem('local:' + id, JSON.stringify(data));
         localStorage.setItem('local:save', localStorage.getItem('local:' + id)); // in case the session gets lost
-        suspendRedrawsOn(redraw => {
-            this.currentTestId$("local:" + id);
+        suspendRedrawsOn(function (redraw) {
+            _this.currentTestId$("local:" + id);
             location.hash = "#/local:" + id;
             redraw();
         });
-    }
+    };
     /** Saves the test model on the server */
-    saveOnline() {
+    ViewModel.prototype.saveOnline = function () {
+        var _this = this;
         // ensure test case title:
         if (!tm.title || tm.title == "UntitledTest") {
             try {
-                tm.title = prompt("Enter a title for your test", tm.title);
+                tm.title = prompt("Enter a title for your test (pressing cancel will abort save)", tm.title);
+                if (tm.title == null) {
+                    tm.title = "UntitledTest";
+                    return;
+                }
             }
             catch (ex) {
                 // do nothing
@@ -1020,7 +1136,7 @@ class ViewModel {
         // ensure the user is connected
         if (!this.githubIsConnected$()) {
             this.saveLocally();
-            alert(`You are about to be redirected to the login page. Your current work has been saved locally with id ${sessionStorage.getItem('local:save')}, and will be recovered after you log in.`);
+            alert("You are about to be redirected to the login page. Your current work has been saved locally with id " + sessionStorage.getItem('local:save') + ", and will be recovered after you log in.");
             this.settingsDialog.logIn();
             return;
         }
@@ -1030,25 +1146,25 @@ class ViewModel {
             method: 'POST',
             body: JSON.stringify(data),
             credentials: "same-origin"
-        }).then(r => r.json()).then(o => {
+        }).then(function (r) { return r.json(); }).then(function (o) {
             sessionStorage.removeItem('local:save');
             localStorage.removeItem('local:save');
-            suspendRedrawsOn(redraw => {
+            suspendRedrawsOn(function (redraw) {
                 // update the data
-                this.currentTestId$(o.id);
-                this.updateURL();
+                _this.currentTestId$(o.id);
+                _this.updateURL();
                 // refresh the iframe and view
-                this.run();
+                _this.run();
                 // remove suspender
                 redraw();
             });
-        }).catch(ex => {
+        }).catch(function (ex) {
             console.error(ex);
             alert("Oops, something went wrong... Try again or save locally by pressing ALT when you click on the save button.");
         });
-    }
+    };
     /** Resets the test model based on new data */
-    openFromJSON(newData) {
+    ViewModel.prototype.openFromJSON = function (newData) {
         this.isLoading$(false);
         this.watchValues = Object.create(null);
         this.watchDisplayValues = Object.create(null);
@@ -1072,18 +1188,24 @@ class ViewModel {
         }
         this.updateURL();
         this.run();
-    }
+    };
     /** Updates url and page title on test id change */
-    updateURL() {
+    ViewModel.prototype.updateURL = function () {
         updatePageTitle();
         location.hash = '#/' + vm.currentTestId$();
         history.replaceState(getTestData(), document.title, location.href); // TODO: clone
-    }
+    };
     /** Exports the test into a web platform test */
-    saveToFile() {
+    ViewModel.prototype.saveToFile = function () {
         var html = '';
-        function ln(...args) { html += String.raw(...args) + '\n'; }
-        ln `<!DOCTYPE html>`;
+        function ln() {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            html += String.raw.apply(String, args) + '\n';
+        }
+        (_a = ["<!DOCTYPE html>"], _a.raw = ["<!DOCTYPE html>"], ln(_a));
         // ensure test case title:
         if (!tm.title || tm.title == "UntitledTest") {
             try {
@@ -1094,10 +1216,10 @@ class ViewModel {
             }
         }
         if (tm.title) {
-            ln `<title>${tm.title.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</title>`;
+            (_b = ["<title>", "</title>"], _b.raw = ["<title>", "</title>"], ln(_b, tm.title.replace(/</g, "&lt;").replace(/>/g, "&gt;")));
         }
         else {
-            ln `<title>UntitledTest</title>`;
+            (_c = ["<title>UntitledTest</title>"], _c.raw = ["<title>UntitledTest</title>"], ln(_c));
         }
         // ensure test case harness:
         var pathToHarness = "/resources/";
@@ -1110,47 +1232,43 @@ class ViewModel {
         catch (ex) {
             // do nothing
         }
-        ln `<script src="${pathToHarness}testharness.js"></script>`;
-        ln `<script src="${pathToHarness}testharnessreport.js"></script>`;
+        (_d = ["<script src=\"", "testharness.js\"></script>"], _d.raw = ["<script src=\"", "testharness.js\"></script>"], ln(_d, pathToHarness));
+        (_e = ["<script src=\"", "testharnessreport.js\"></script>"], _e.raw = ["<script src=\"", "testharnessreport.js\"></script>"], ln(_e, pathToHarness));
         // append the test case itself
         if (tm.jsHead) {
-            ln `<script>${"\n\n" + tm.jsHead + "\n\n"}</script>`;
+            (_f = ["<script>", "</script>"], _f.raw = ["<script>", "</script>"], ln(_f, "\n\n" + tm.jsHead + "\n\n"));
         }
         if (tm.css) {
-            ln `<style>${"\n\n" + tm.css + "\n\n"}</style>`;
+            (_g = ["<style>", "</style>"], _g.raw = ["<style>", "</style>"], ln(_g, "\n\n" + tm.css + "\n\n"));
         }
         if (tm.html) {
-            ln ``;
-            ln `${tm.html}`;
-            ln ``;
+            (_h = [""], _h.raw = [""], ln(_h));
+            (_j = ["", ""], _j.raw = ["", ""], ln(_j, tm.html));
+            (_k = [""], _k.raw = [""], ln(_k));
         }
         if (tm.jsBody) {
-            ln `<script>${"\n\n" + tm.jsBody + "\n\n"}</script>`;
+            (_l = ["<script>", "</script>"], _l.raw = ["<script>", "</script>"], ln(_l, "\n\n" + tm.jsBody + "\n\n"));
         }
-        ln `<script>
-var test_description = document.title;
-promise_test(
-	t => {
-		return new Promise(test => addEventListener('load', e=>test()))
-		${Array.from(tm.watches).map(expr => ({
+        (_m = ["<script>\nvar test_description = document.title;\npromise_test(\n\tt => {\n\t\treturn new Promise(test => addEventListener('load', e=>test()))\n\t\t", "\n\t},\n\ttest_description\n);\n</script>"], _m.raw = ["<script>\nvar test_description = document.title;\npromise_test(\n\tt => {\n\t\treturn new Promise(test => addEventListener('load', e=>test()))\n\t\t",
+            "\n\t},\n\ttest_description\n);\n</script>"], ln(_m, Array.from(tm.watches).map(function (expr) { return ({
             expression: expr,
             jsValue: vm.watchValues[expr]
-        })).filter(w => !!w.expression).map(w => `.then(test => assert_equals(${expandShorthandsIn(w.expression)}, ${JSON.stringify(w.jsValue)}, ${JSON.stringify(`Invalid ${w.expression};`)}))`).join('\n\t\t')}
-	},
-	test_description
-);
-</script>`;
+        }); }).filter(function (w) { return !!w.expression; }).map(function (w) {
+            return ".then(test => assert_equals(" + expandShorthandsIn(w.expression) + ", " + JSON.stringify(w.jsValue) + ", " + JSON.stringify("Invalid " + w.expression + ";") + "))";
+        }).join('\n\t\t')));
         var blob = new Blob([html], { type: 'text/html' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
         a.setAttribute("download", "testcase.html");
         a.href = url;
         a.click();
-        setTimeout(x => URL.revokeObjectURL(url), 10000);
-    }
-}
-class SelectorGenerationDialogViewModel {
-    constructor(vm) {
+        setTimeout(function (x) { return URL.revokeObjectURL(url); }, 10000);
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+    };
+    return ViewModel;
+}());
+var SelectorGenerationDialogViewModel = (function () {
+    function SelectorGenerationDialogViewModel(vm) {
         /** The attached view model */
         this.vm = null;
         /** Whether the dialog is opened or closed */
@@ -1162,7 +1280,7 @@ class SelectorGenerationDialogViewModel {
         /** The id auto-generated for the element, if any */
         this.autoId$ = m.prop("");
         /** Whether there is an auto-generated id (readonly) */
-        this.isAutoAvailable$ = cachedCast(this.autoId$, x => !!x);
+        this.isAutoAvailable$ = cachedCast(this.autoId$, function (x) { return !!x; });
         /** The mode chosen by the user */
         this.chosenMode$ = m.prop("auto");
         /** The id the user typed in the text box (id mode) */
@@ -1171,44 +1289,47 @@ class SelectorGenerationDialogViewModel {
         this.chosenSelector$ = m.prop("");
         this.vm = vm;
     }
-}
-class SettingsDialogViewModel {
-    constructor(vm) {
+    return SelectorGenerationDialogViewModel;
+}());
+var SettingsDialogViewModel = (function () {
+    function SettingsDialogViewModel(vm) {
+        var _this = this;
         /** The attached view model */
         this.vm = null;
         /** Whether the dialog is opened or closed */
         this.isOpened$ = m.prop(false);
         /** Whether to use Monaco on this device or not */
-        this.useMonaco$ = m.prop2((v) => {
-            if (typeof (this.intenal_useMonaco) == 'undefined') {
-                this.intenal_useMonaco = !localStorage.getItem('noMonaco');
+        this.useMonaco$ = m.prop2(function (v) {
+            if (typeof (_this.intenal_useMonaco) == 'undefined') {
+                _this.intenal_useMonaco = !localStorage.getItem('noMonaco');
             }
-            return this.intenal_useMonaco;
-        }, (v) => {
-            this.intenal_useMonaco = !!v;
+            return _this.intenal_useMonaco;
+        }, function (v) {
+            _this.intenal_useMonaco = !!v;
             localStorage.setItem('noMonaco', v ? '' : 'true');
         });
         this.vm = vm;
     }
     /** Ask the viewmodel to log the user out */
-    logOut() {
+    SettingsDialogViewModel.prototype.logOut = function () {
         this.vm.logOut();
-    }
+    };
     /** Ask the viewmodel to log a user in */
-    logIn() {
+    SettingsDialogViewModel.prototype.logIn = function () {
         this.vm.logIn();
-    }
+    };
     /** Open the welcome dialog */
-    openWelcomeDialog() {
+    SettingsDialogViewModel.prototype.openWelcomeDialog = function () {
         this.vm.welcomeDialog.isOpened$(true);
-    }
+    };
     /** Open the search dialog */
-    openSearchDialog() {
+    SettingsDialogViewModel.prototype.openSearchDialog = function () {
         this.vm.searchDialog.isOpened$(true);
-    }
-}
-class WelcomeDialogViewModel {
-    constructor(vm) {
+    };
+    return SettingsDialogViewModel;
+}());
+var WelcomeDialogViewModel = (function () {
+    function WelcomeDialogViewModel(vm) {
         /** The attached view model */
         this.vm = null;
         /** Whether the dialog is opened or closed */
@@ -1226,9 +1347,10 @@ class WelcomeDialogViewModel {
             localStorage.setItem('noWelcome', 'true');
         }
     }
-}
-class SearchDialogViewModel {
-    constructor(vm) {
+    return WelcomeDialogViewModel;
+}());
+var SearchDialogViewModel = (function () {
+    function SearchDialogViewModel(vm) {
         /** The attached view model */
         this.vm = null;
         /** Whether the dialog is opened or closed */
@@ -1242,38 +1364,50 @@ class SearchDialogViewModel {
         this.vm = vm;
     }
     /** Opens the dialog */
-    open() {
+    SearchDialogViewModel.prototype.open = function () {
         if (!this.isOpened$()) {
             this.searchTerms$("");
             this.searchUrl$("about:blank");
             this.isOpened$(true);
         }
         this.shouldGetFocus$(true);
-    }
-}
+    };
+    return SearchDialogViewModel;
+}());
 var vm = new ViewModel();
 /// <reference path="wptest-vm.tsx" />
-var Input = new Tag().from(a => React.createElement("input", Object.assign({}, attributesOf(a), { value: a.value$(), oninput: bindTo(a.value$), onchange: bindTo(a.value$) })));
-var InputCheckbox = new Tag().from(a => React.createElement("input", Object.assign({ type: "checkbox" }, attributesOf(a), { checked: a.value$(), onchange: bindTo(a.value$, "checked") })));
-var InputRadio = new Tag().from(a => React.createElement("input", Object.assign({ type: "radio" }, attributesOf(a), { checked: a.checkedValue$() == a.value, onchange: bindTo(a.checkedValue$) })));
-var TextArea = new Tag().from(a => React.createElement("textarea", Object.assign({}, attributesOf(a), { oninput: bindTo(a.value$), onchange: bindTo(a.value$) }), a.value$()));
-var BodyToolbar = new Tag().from(a => React.createElement("body-toolbar", { row: true, role: "toolbar" },
-    React.createElement("button", { onclick: e => vm.run(), title: "Move your code to the iframe" }, "Run"),
-    React.createElement("button", { onclick: e => { if (e.shiftKey) {
-            vm.saveInUrl();
-        }
-        else if (e.altKey) {
-            vm.saveLocally();
-        }
-        else {
-            vm.saveOnline();
-        } }, title: "Save your test online (Shift: url, Alt: local storage)" }, "Save"),
-    React.createElement("button", { onclick: e => vm.saveToFile(), title: "Download as a weplatform test case" }, "Export"),
-    React.createElement("button", { onclick: e => vm.settingsDialog.isOpened$(true), title: "Open the settings dialog" }, "\u22C5\u22C5\u22C5"),
-    React.createElement("hr", { style: "visibility: hidden; flex:1 0 0;" }),
-    React.createElement(Input, { "value$": a.model.title$, title: "Title of your test case" })));
+var Input = new Tag().from(function (a) {
+    return React.createElement("input", __assign({}, attributesOf(a), { value: a.value$(), oninput: bindTo(a.value$), onchange: bindTo(a.value$) }));
+});
+var InputCheckbox = new Tag().from(function (a) {
+    return React.createElement("input", __assign({ type: "checkbox" }, attributesOf(a), { checked: a.value$(), onchange: bindTo(a.value$, "checked") }));
+});
+var InputRadio = new Tag().from(function (a) {
+    return React.createElement("input", __assign({ type: "radio" }, attributesOf(a), { checked: a.checkedValue$() == a.value, onchange: bindTo(a.checkedValue$) }));
+});
+var TextArea = new Tag().from(function (a) {
+    return React.createElement("textarea", __assign({}, attributesOf(a), { oninput: bindTo(a.value$), onchange: bindTo(a.value$) }), a.value$());
+});
+var BodyToolbar = new Tag().from(function (a) {
+    return React.createElement("body-toolbar", { row: true, role: "toolbar" },
+        React.createElement("button", { onclick: function (e) { return vm.run(); }, title: "Move your code to the iframe" }, "Run"),
+        React.createElement("button", { onclick: function (e) { if (e.shiftKey) {
+                vm.saveInUrl();
+            }
+            else if (e.altKey) {
+                vm.saveLocally();
+            }
+            else {
+                vm.saveOnline();
+            } }, title: "Save your test online (Shift: url, Alt: local storage)" }, "Save"),
+        React.createElement("button", { onclick: function (e) { return vm.saveToFile(); }, title: "Download as a weplatform test case" }, "Export"),
+        React.createElement("button", { onclick: function (e) { return vm.settingsDialog.isOpened$(true); }, title: "Open the settings dialog" }, "\u22C5\u22C5\u22C5"),
+        React.createElement("hr", { style: "visibility: hidden; flex:1 0 0px;" }),
+        React.createElement(Input, { "value$": a.model.title$, title: "Title of your test case" }));
+});
 var MonacoTextEditor = new Tag().with({
-    oncreate(node) {
+    oncreate: function (node) {
+        var _this = this;
         // set default state values
         this.editor = null;
         this.value = node.attrs.value$();
@@ -1281,12 +1415,12 @@ var MonacoTextEditor = new Tag().with({
         // wait for monaco to load if needed
         if (localStorage.getItem('noMonaco'))
             return;
-        require(['vs/editor/editor.main'], then => {
+        require(['vs/editor/editor.main'], function (then) {
             // create the text editor, and save it in the state
-            this.value = node.attrs.value$();
-            this.isDirty = false;
-            let editor = this.editor = monaco.editor.create(document.getElementById(node.attrs.id + 'Area'), {
-                value: this.value,
+            _this.value = node.attrs.value$();
+            _this.isDirty = false;
+            var editor = _this.editor = monaco.editor.create(document.getElementById(node.attrs.id + 'Area'), {
+                value: _this.value,
                 fontSize: 13,
                 lineNumbers: "off",
                 scrollbar: {
@@ -1301,40 +1435,40 @@ var MonacoTextEditor = new Tag().with({
                 },
                 language: node.attrs.language,
             });
-            this.editor.updateOptions({
+            _this.editor.updateOptions({
                 acceptSuggestionOnEnter: false,
             });
-            this.editor.getModel().updateOptions({
+            _this.editor.getModel().updateOptions({
                 insertSpaces: false,
                 tabSize: 4,
             });
             // register to some events to potentially update the linked value
-            this.editor.getModel().onDidChangeContent(e => {
-                if (this.editor.isFocused()) {
-                    this.isDirty = true;
+            _this.editor.getModel().onDidChangeContent(function (e) {
+                if (_this.editor.isFocused()) {
+                    _this.isDirty = true;
                     redrawIfReady();
                 }
             });
-            this.editor.onDidFocusEditor(() => {
+            _this.editor.onDidFocusEditor(function () {
                 if (node.attrs && node.attrs.isFocused$) {
                     node.attrs.isFocused$(true);
                     redrawIfReady();
                 }
             });
-            this.editor.onDidBlurEditor(() => {
+            _this.editor.onDidBlurEditor(function () {
                 if (node.attrs && node.attrs.isFocused$) {
                     node.attrs.isFocused$(false);
                     redrawIfReady();
                 }
             });
             // register to the window resize event, and relayout if needed
-            window.addEventListener('resize', x => {
-                this.editor.layout();
+            window.addEventListener('resize', function (x) {
+                _this.editor.layout();
             });
             // hookup language-specific things
             switch (node.attrs.language) {
                 case "html": {
-                    this.editor.getModel().onDidChangeContent(e => {
+                    _this.editor.getModel().onDidChangeContent(function (e) {
                         var oldLineCount = 1 + e.range.endLineNumber - e.range.startLineNumber;
                         var newLineCount = countLines(e.text);
                         var deltaLineCount = (newLineCount - oldLineCount);
@@ -1364,15 +1498,15 @@ var MonacoTextEditor = new Tag().with({
                             }
                         }
                     });
-                    this.editor.addAction({
+                    _this.editor.addAction({
                         id: 'wpt-inspect',
                         label: 'Inspect this element',
                         contextMenuGroupId: 'navigation',
                         contextMenuOrder: 0,
-                        run() {
+                        run: function () {
                             var sourceLine = 1 + vm.lineMapping[editor.getPosition().lineNumber - 1];
-                            var w = outputPane.contentWindow;
-                            var d = outputPane.contentDocument;
+                            var w = getOutputPane().contentWindow;
+                            var d = getOutputPane().contentDocument;
                             for (var i = 0; i < d.all.length; i++) {
                                 var elm = d.all[i];
                                 if (elm.sourceLine == sourceLine && elm != d.body) {
@@ -1388,42 +1522,42 @@ var MonacoTextEditor = new Tag().with({
                     break;
                 }
                 case "css": {
-                    this.editor.addAction({
+                    _this.editor.addAction({
                         id: "lookup-on-csswg",
                         label: "Search on csswg.org",
                         contextMenuGroupId: 'navigation',
                         contextMenuOrder: 0,
-                        run() {
+                        run: function () {
                             var word = editor.getModel().getWordAtPosition(editor.getPosition()).word;
                             window.open("http://bing.com/search?q=" + word + " site:drafts.csswg.org");
                         }
                     });
-                    this.editor.addAction({
+                    _this.editor.addAction({
                         id: "lookup-on-msdn",
                         label: "Search on MSDN",
                         contextMenuGroupId: 'navigation',
                         contextMenuOrder: 0.1,
-                        run() {
+                        run: function () {
                             var word = editor.getModel().getWordAtPosition(editor.getPosition()).word;
                             window.open("http://bing.com/search?q=" + word + " property site:msdn.microsoft.com");
                         }
                     });
-                    this.editor.addAction({
+                    _this.editor.addAction({
                         id: "lookup-on-mdn",
                         label: "Search on MDN",
                         contextMenuGroupId: 'navigation',
                         contextMenuOrder: 0.2,
-                        run() {
+                        run: function () {
                             var word = editor.getModel().getWordAtPosition(editor.getPosition()).word;
                             window.open("http://bing.com/search?q=" + word + " css site:developer.mozilla.org ");
                         }
                     });
-                    this.editor.addAction({
+                    _this.editor.addAction({
                         id: "cssbeautify",
                         label: "Beautify the code",
                         contextMenuGroupId: 'navigation',
                         contextMenuOrder: 0.3,
-                        run() {
+                        run: function () {
                             editor.setValue(cssbeautify(editor.getValue(), { indent: '\t' }));
                             editor.focus();
                         }
@@ -1438,13 +1572,13 @@ var MonacoTextEditor = new Tag().with({
                 }
             }
             // eventually recover current textbox focus state
-            let linkedTextbox = document.getElementById(node.attrs.id + "Textbox");
+            var linkedTextbox = document.getElementById(node.attrs.id + "Textbox");
             if (document.activeElement === linkedTextbox) {
-                let startPos = linkedTextbox.selectionStart;
-                let endPos = linkedTextbox.selectionEnd;
+                var startPos = linkedTextbox.selectionStart;
+                var endPos = linkedTextbox.selectionEnd;
                 if (startPos > 0 || endPos > 0) {
-                    let startLine = 0, startPosInLine = startPos;
-                    let endLine = 0, endPosInLine = endPos;
+                    var startLine = 0, startPosInLine = startPos;
+                    var endLine = 0, endPosInLine = endPos;
                     var lines = linkedTextbox.value.split(/\n/g);
                     while (startPosInLine > lines[startLine].length) {
                         startPosInLine -= lines[startLine].length + 1;
@@ -1454,37 +1588,38 @@ var MonacoTextEditor = new Tag().with({
                         endPosInLine -= lines[endLine].length + 1;
                         endLine++;
                     }
-                    this.editor.setSelection(new monaco.Range(1 + startLine, 1 + startPosInLine, 1 + endLine, 1 + endPosInLine));
+                    _this.editor.setSelection(new monaco.Range(1 + startLine, 1 + startPosInLine, 1 + endLine, 1 + endPosInLine));
                 }
-                this.editor.focus();
+                _this.editor.focus();
             }
             redrawIfReady();
         });
     },
-    onbeforeupdate(node, oldn) {
+    onbeforeupdate: function (node, oldn) {
+        var _this = this;
         // verifies that we have a text control to work with
         if (!this.editor)
             return;
         // verifies whether we need to change the text of the control
         var theNewValue$ = node.attrs["value$"];
         var theNewValue = theNewValue$();
-        var cantForciblyUpdate = () => (this.editor.isFocused()
-            && this.value
-            && theNewValue);
+        var cantForciblyUpdate = function () { return (_this.editor.isFocused()
+            && _this.value
+            && theNewValue); };
         if (theNewValue != this.value && !cantForciblyUpdate()) {
             // there was a model update
             this.isDirty = false;
             this.editor.setValue(this.value = theNewValue);
             // in this case, stop tracking the line mapping
             if (node.attrs.language === 'html') {
-                vm.lineMapping = this.value.split(/\n/g).map(l => 0);
+                vm.lineMapping = this.value.split(/\n/g).map(function (l) { return 0; });
                 vm.shouldMoveToSelectedElement$(false);
             }
         }
         else if (this.isDirty) {
             // there was a content update
             theNewValue$(this.value = this.editor.getValue());
-            requestAnimationFrame(time => m.redraw());
+            requestAnimationFrame(function (time) { return m.redraw(); });
             this.isDirty = false;
         }
         else {
@@ -1504,14 +1639,16 @@ var MonacoTextEditor = new Tag().with({
             this.editor.focus();
         }
     }
-}).from((a, c, s) => React.createElement("monaco-text-editor", { id: a.id, language: a.language },
-    React.createElement("monaco-text-editor-area", { id: a.id + 'Area' }),
-    React.createElement(TextArea, { id: a.id + 'Textbox', "value$": a.value$, hidden: !!s.editor, onkeydown: enableTabInTextarea }),
-    React.createElement("monaco-text-editor-placeholder", { hidden: a.value$().length > 0 }, ({
-        'javascript': '// JAVASCRIPT CODE',
-        'html': '<!-- HTML MARKUP -->',
-        'css': '/* CSS STYLES */'
-    }[a.language] || ''))));
+}).from(function (a, c, s) {
+    return React.createElement("monaco-text-editor", { id: a.id, language: a.language },
+        React.createElement("monaco-text-editor-area", { id: a.id + 'Area' }),
+        React.createElement(TextArea, { id: a.id + 'Textbox', "value$": a.value$, hidden: !!s.editor, onkeydown: enableTabInTextarea }),
+        React.createElement("monaco-text-editor-placeholder", { hidden: a.value$().length > 0 }, ({
+            'javascript': '// JAVASCRIPT CODE',
+            'html': '<!-- HTML MARKUP -->',
+            'css': '/* CSS STYLES */'
+        }[a.language] || '')));
+});
 function enableTabInTextarea(e) {
     // tab but not ctrl+tab
     if (e.ctrlKey || e.altKey)
@@ -1524,14 +1661,18 @@ function enableTabInTextarea(e) {
         this.onchange(e);
     }
 }
-var TabButton = new Tag().from((a, c) => React.createElement("button", Object.assign({}, attributesOf(a), { onclick: e => a.activePane$(a.pane), "aria-controls": a.pane, "aria-expanded": `${a.pane == a.activePane$()}` }), c));
-var ToolsPaneToolbar = new Tag().from(a => React.createElement("tools-pane-toolbar", { row: true, "aria-controls": a.activePane$(), role: "toolbar" },
-    React.createElement(TabButton, { pane: "jsPaneWatches", "activePane$": a.activePane$ }, "Watches"),
-    React.createElement(TabButton, { pane: "jsPaneConsole", "activePane$": a.activePane$ }, "Console"),
-    React.createElement(TabButton, { pane: "jsPaneHeadCode", "activePane$": a.activePane$ }, "Header code"),
-    React.createElement(TabButton, { pane: "jsPaneBodyCode", "activePane$": a.activePane$ }, "Body code")));
+var TabButton = new Tag().from(function (a, c) {
+    return React.createElement("button", __assign({}, attributesOf(a), { onclick: function (e) { return a.activePane$(a.pane); }, "aria-controls": a.pane, "aria-expanded": "" + (a.pane == a.activePane$()) }), c);
+});
+var ToolsPaneToolbar = new Tag().from(function (a) {
+    return React.createElement("tools-pane-toolbar", { row: true, "aria-controls": a.activePane$(), role: "toolbar" },
+        React.createElement(TabButton, { pane: "jsPaneWatches", "activePane$": a.activePane$ }, "Watches"),
+        React.createElement(TabButton, { pane: "jsPaneConsole", "activePane$": a.activePane$ }, "Console"),
+        React.createElement(TabButton, { pane: "jsPaneHeadCode", "activePane$": a.activePane$ }, "Header code"),
+        React.createElement(TabButton, { pane: "jsPaneBodyCode", "activePane$": a.activePane$ }, "Body code"));
+});
 var ToolsPaneWatches = new Tag().with({
-    onbeforeupdate() {
+    onbeforeupdate: function () {
         var lastWatchFilter = vm.watchFilterText$();
         var lastWatchUpdateTime = vm.lastWatchUpdateTime$();
         var shouldUpdate = (false
@@ -1541,43 +1682,49 @@ var ToolsPaneWatches = new Tag().with({
         this.lastKnownWatchFilter = lastWatchFilter;
         return shouldUpdate;
     }
-}).from(a => React.createElement("tools-pane-watches", { block: true, id: a.id, "is-active-pane": a.activePane$() == a.id },
-    React.createElement(Input, { class: "watch-filter-textbox", "value$": vm.watchFilterText$, onkeyup: e => { if (e.keyCode == 27) {
-            vm.watchFilterText$('');
-        } }, type: "text", required: true, placeholder: "🔎", title: "Filter the watch list" }),
-    React.createElement("ul", { class: "watch-list" },
-        React.createElement("li", null,
-            React.createElement("input", { type: "checkbox", checked: true, disabled: true, title: "Uncheck to delete this watch" }),
-            React.createElement("input", { type: "text", placeholder: "/* add new watch here */", onchange: e => { if (e.target.value) {
-                    vm.addPinnedWatch(e.target.value);
-                    e.target.value = '';
-                    e.target.focus();
-                } } }),
-            React.createElement("output", null)),
-        tm.watches.map((expr, i, a) => React.createElement("li", null,
-            React.createElement("input", { type: "checkbox", checked: true, title: "Uncheck to delete this watch", onchange: e => { if (!e.target.checked) {
-                    vm.removePinnedWatch(expr);
-                    e.target.checked = true;
-                } } }),
-            React.createElement(Input, { type: "text", title: expr, "value$": m.prop2(x => expr, v => { if (a[i] != v) {
-                    a[i] = v;
-                    requestAnimationFrame(then => vm.refreshWatches());
-                } }) }),
-            React.createElement("output", { assert: vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr]) === vm.watchValues[expr] ? 'pass' : 'fail' : 'none' }, `${vm.watchDisplayValues[expr] || ''}`),
-            React.createElement("button", { class: "edit", title: "Edit the expected value", onclick: e => vm.setupExpectedValueFor(expr) }, "edit")))),
-    React.createElement("ul", { class: "watch-list" }, vm.autoWatches.map(expr => React.createElement("li", { hidden: vm.hiddenAutoWatches[expr] || !vm.watchFilter$().matches(expr) },
-        React.createElement("input", { type: "checkbox", title: "Check to pin this watch", onchange: e => { if (e.target.checked) {
-                vm.addPinnedWatch(expr);
-                e.target.checked = false;
-            } } }),
-        React.createElement("input", { type: "text", readonly: true, title: expr, value: expr }),
-        React.createElement("output", null, `${vm.watchDisplayValues[expr] || ''}`))))));
+}).from(function (a) {
+    return React.createElement("tools-pane-watches", { block: true, id: a.id, "is-active-pane": a.activePane$() == a.id },
+        React.createElement(Input, { class: "watch-filter-textbox", "value$": vm.watchFilterText$, onkeyup: function (e) { if (e.keyCode == 27) {
+                vm.watchFilterText$('');
+            } }, type: "text", required: true, placeholder: "🔎", title: "Filter the watch list" }),
+        React.createElement("ul", { class: "watch-list" },
+            React.createElement("li", null,
+                React.createElement("input", { type: "checkbox", checked: true, disabled: true, title: "Uncheck to delete this watch" }),
+                React.createElement("input", { type: "text", placeholder: "/* add new watch here */", onchange: function (e) { if (e.target.value) {
+                        vm.addPinnedWatch(e.target.value);
+                        e.target.value = '';
+                        e.target.focus();
+                    } } }),
+                React.createElement("output", null)),
+            tm.watches.map(function (expr, i, a) {
+                return React.createElement("li", null,
+                    React.createElement("input", { type: "checkbox", checked: true, title: "Uncheck to delete this watch", onchange: function (e) { if (!e.target.checked) {
+                            vm.removePinnedWatch(expr);
+                            e.target.checked = true;
+                        } } }),
+                    React.createElement(Input, { type: "text", title: expr, "value$": m.prop2(function (x) { return expr; }, function (v) { if (a[i] != v) {
+                            a[i] = v;
+                            requestAnimationFrame(function (then) { return vm.refreshWatches(); });
+                        } }) }),
+                    React.createElement("output", { assert: vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr]) === vm.watchValues[expr] ? 'pass' : 'fail' : 'none' }, "" + (vm.watchDisplayValues[expr] || '')),
+                    React.createElement("button", { class: "edit", title: "Edit the expected value", onclick: function (e) { return vm.setupExpectedValueFor(expr); } }, "edit"));
+            })),
+        React.createElement("ul", { class: "watch-list" }, vm.autoWatches.map(function (expr) {
+            return React.createElement("li", { hidden: vm.hiddenAutoWatches[expr] || !vm.watchFilter$().matches(expr) },
+                React.createElement("input", { type: "checkbox", title: "Check to pin this watch", onchange: function (e) { if (e.target.checked) {
+                        vm.addPinnedWatch(expr);
+                        e.target.checked = false;
+                    } } }),
+                React.createElement("input", { type: "text", readonly: true, title: expr, value: expr }),
+                React.createElement("output", null, "" + (vm.watchDisplayValues[expr] || '')));
+        })));
+});
 var ToolsPaneConsole = new Tag().with({
-    oncreate() {
+    oncreate: function () {
         this.history = [''];
         this.historyIndex = 0;
     },
-    onsumbit(e) {
+    onsumbit: function (e) {
         try {
             var inp = e.target.querySelector('input');
             var expr = inp.value;
@@ -1590,7 +1737,7 @@ var ToolsPaneConsole = new Tag().with({
             // evaluate expression
             var res = undefined;
             try {
-                res = outputPane.contentWindow.eval(expandShorthandsIn(expr));
+                res = getOutputPane().contentWindow.eval(expandShorthandsIn(expr));
             }
             catch (ex) {
                 res = ex;
@@ -1606,7 +1753,7 @@ var ToolsPaneConsole = new Tag().with({
             return false;
         }
     },
-    onkeypress(e) {
+    onkeypress: function (e) {
         var inp = e.target;
         if (e.key == 'Up' || e.key == 'ArrowUp') {
             if (this.historyIndex > 0)
@@ -1625,18 +1772,22 @@ var ToolsPaneConsole = new Tag().with({
             // nothing to do
         }
     }
-}).from((a, c, self) => React.createElement("tools-pane-console", { id: a.id, "is-active-pane": a.activePane$() == a.id },
-    React.createElement("pre", { id: a.id + "Output" }),
-    React.createElement("form", { method: "POST", onsubmit: e => self.onsumbit(e) },
-        React.createElement("input", { type: "text", onkeydown: e => self.onkeypress(e), oninput: e => self.onkeypress(e) }))));
-var ToolsPaneCode = new Tag().from(a => React.createElement("tools-pane-code", { id: a.id, "is-active-pane": a.activePane$() == a.id },
-    React.createElement(MonacoTextEditor, { id: a.id + '--editor', "value$": a.value$, language: "javascript" })) // TODO
+}).from(function (a, c, self) {
+    return React.createElement("tools-pane-console", { id: a.id, "is-active-pane": a.activePane$() == a.id },
+        React.createElement("pre", { id: a.id + "Output" }),
+        React.createElement("form", { method: "POST", onsubmit: function (e) { return self.onsumbit(e); } },
+            React.createElement("input", { type: "text", onkeydown: function (e) { return self.onkeypress(e); }, oninput: function (e) { return self.onkeypress(e); } })));
+});
+var ToolsPaneCode = new Tag().from(function (a) {
+    return React.createElement("tools-pane-code", { id: a.id, "is-active-pane": a.activePane$() == a.id },
+        React.createElement(MonacoTextEditor, { id: a.id + '--editor', "value$": a.value$, language: "javascript" }));
+} // TODO
 );
 var OutputPaneCover = new Tag().with({
-    shouldBeHidden() {
+    shouldBeHidden: function () {
         return !vm.isPicking$() && !vm.selectedElement$();
     },
-    boxStyles$: cachedCast(vm.selectedElement$, elm => {
+    boxStyles$: cachedCast(vm.selectedElement$, function (elm) {
         var styles = {
             marginBox: {
                 position: "absolute",
@@ -1660,46 +1811,54 @@ var OutputPaneCover = new Tag().with({
             var es = gCS(elm);
             // position
             styles.marginBox.display = 'block';
-            styles.marginBox.top = `${gBCT(elm)}px`;
-            styles.marginBox.left = `${gBCL(elm)}px`;
+            styles.marginBox.top = gBCT(elm) + "px";
+            styles.marginBox.left = gBCL(elm) + "px";
             // margin box
             var mt = parseInt(es.marginTop);
             var ml = parseInt(es.marginLeft);
             var mr = parseInt(es.marginRight);
             var mb = parseInt(es.marginBottom);
-            styles.marginBox.transform = `translate(${-ml}px,${-mt}px)`;
-            styles.marginBox.borderTopWidth = `${mt}px`;
-            styles.marginBox.borderLeftWidth = `${ml}px`;
-            styles.marginBox.borderRightWidth = `${mr}px`;
-            styles.marginBox.borderBottomWidth = `${mb}px`;
+            styles.marginBox.transform = "translate(" + -ml + "px," + -mt + "px)";
+            styles.marginBox.borderTopWidth = mt + "px";
+            styles.marginBox.borderLeftWidth = ml + "px";
+            styles.marginBox.borderRightWidth = mr + "px";
+            styles.marginBox.borderBottomWidth = mb + "px";
             // border box
             var bt = parseInt(es.borderTopWidth);
             var bl = parseInt(es.borderLeftWidth);
             var br = parseInt(es.borderRightWidth);
             var bb = parseInt(es.borderBottomWidth);
-            styles.borderBox.borderTopWidth = `${bt}px`;
-            styles.borderBox.borderLeftWidth = `${bl}px`;
-            styles.borderBox.borderRightWidth = `${br}px`;
-            styles.borderBox.borderBottomWidth = `${bb}px`;
+            styles.borderBox.borderTopWidth = bt + "px";
+            styles.borderBox.borderLeftWidth = bl + "px";
+            styles.borderBox.borderRightWidth = br + "px";
+            styles.borderBox.borderBottomWidth = bb + "px";
             // padding box
             var pt = parseInt(es.paddingTop);
             var pl = parseInt(es.paddingLeft);
             var pr = parseInt(es.paddingRight);
             var pb = parseInt(es.paddingBottom);
-            styles.paddingBox.borderTopWidth = `${pt}px`;
-            styles.paddingBox.borderLeftWidth = `${pl}px`;
-            styles.paddingBox.borderRightWidth = `${pr}px`;
-            styles.paddingBox.borderBottomWidth = `${pb}px`;
+            styles.paddingBox.borderTopWidth = pt + "px";
+            styles.paddingBox.borderLeftWidth = pl + "px";
+            styles.paddingBox.borderRightWidth = pr + "px";
+            styles.paddingBox.borderBottomWidth = pb + "px";
             // content box
-            styles.contentBox.width = `${gBCW(elm) - pl - pr - bl - br}px`;
-            styles.contentBox.height = `${gBCH(elm) - pt - pb - bt - bb}px`;
+            styles.contentBox.width = gBCW(elm) - pl - pr - bl - br + "px";
+            styles.contentBox.height = gBCH(elm) - pt - pb - bt - bb + "px";
         }
         return styles;
     }),
-    setCurrentElementFromClick(e) {
-        var elm = outputPane.contentDocument.elementFromPoint(e.offsetX, e.offsetY);
+    setCurrentElementFromClick: function (e) {
+        // ie hack to hide the element that covers the iframe and prevents elementFromPoint to work
+        if ("ActiveXObject" in window) {
+            document.getElementById("outputPaneCover").style.display = 'none';
+        }
+        var elm = getOutputPane().contentDocument.elementFromPoint(e.offsetX, e.offsetY) || getOutputPane().contentDocument.documentElement;
         var shouldUpdate = vm.selectedElement$() !== elm;
         vm.selectedElement$(elm);
+        // ie hack to unhide the element that covers the iframe and prevents elementFromPoint to work
+        if ("ActiveXObject" in window) {
+            document.getElementById("outputPaneCover").style.display = '';
+        }
         if (e.type == 'pointerdown' || e.type == 'mousedown') {
             // stop picking on pointer down
             vm.isPicking$(false);
@@ -1718,49 +1877,63 @@ var OutputPaneCover = new Tag().with({
             m.redraw(true);
         }
     },
-    getPointerOrMouseEvents() {
+    getPointerOrMouseEvents: function () {
+        var _this = this;
         var onpointerdown = 'onpointerdown' in window ? 'onpointerdown' : 'onmousedown';
         var onpointermove = 'onpointermove' in window ? 'onpointermove' : 'onmousemove';
         if (this.shouldBeHidden()) {
-            return {
-                [onpointermove]: null,
-                [onpointerdown]: null
-            };
+            return _a = {},
+                _a[onpointermove] = null,
+                _a[onpointerdown] = null,
+                _a;
         }
         if (!this.events) {
-            this.events = {
-                [onpointermove]: e => this.setCurrentElementFromClick(e),
-                [onpointerdown]: e => this.setCurrentElementFromClick(e)
-            };
+            this.events = (_b = {},
+                _b[onpointermove] = function (e) { return _this.setCurrentElementFromClick(e); },
+                _b[onpointerdown] = function (e) { return _this.setCurrentElementFromClick(e); },
+                _b);
         }
         return this.events;
+        var _a, _b;
     }
-}).from((a, c, self) => React.createElement("output-pane-cover", Object.assign({ block: true, id: a.id, "is-active": vm.isPicking$() }, self.getPointerOrMouseEvents()),
-    React.createElement("margin-box", { block: true, hidden: self.shouldBeHidden(), style: self.boxStyles$().marginBox },
-        React.createElement("border-box", { block: true, style: self.boxStyles$().borderBox },
-            React.createElement("padding-box", { block: true, style: self.boxStyles$().paddingBox },
-                React.createElement("content-box", { block: true, style: self.boxStyles$().contentBox }))))));
-var HTMLPane = new Tag().from(a => React.createElement("html-pane", { "is-focused": a.isFocused$(), "disabled-style": { 'flex-grow': tm.html ? 3 : 1 } },
-    React.createElement(MonacoTextEditor, { id: "htmlPaneEditor", "value$": tm.html$, language: "html", "isFocused$": a.isFocused$ })));
-var CSSPane = new Tag().from(a => React.createElement("css-pane", { "is-focused": a.isFocused$(), "disabled-style": { 'flex-grow': tm.css ? 3 : 1 } },
-    React.createElement(MonacoTextEditor, { id: "cssPaneEditor", "value$": tm.css$, language: "css", "isFocused$": a.isFocused$ })));
-var JSPane = new Tag().from(a => React.createElement("js-pane", { "is-focused": a.isFocused$(), "disabled-style": { 'flex-grow': tm.jsBody ? 3 : 1 } },
-    React.createElement(MonacoTextEditor, { id: "jsPaneEditor", "value$": vm.jsCombined$, language: "javascript", "isFocused$": a.isFocused$ })));
-var ToolsPane = new Tag().from(a => React.createElement("tools-pane", null,
-    React.createElement(ToolsPaneToolbar, { "activePane$": vm.activeJsTab$ }),
-    React.createElement("tools-pane-tabs", null,
-        React.createElement(ToolsPaneWatches, { id: "jsPaneWatches", "activePane$": vm.activeJsTab$ }),
-        React.createElement(ToolsPaneConsole, { id: "jsPaneConsole", "activePane$": vm.activeJsTab$ }),
-        React.createElement(ToolsPaneCode, { id: "jsPaneHeadCode", "value$": tm.jsHead$, "activePane$": vm.activeJsTab$ }),
-        React.createElement(ToolsPaneCode, { id: "jsPaneBodyCode", "value$": tm.jsBody$, "activePane$": vm.activeJsTab$ }))));
-var OutputPane = new Tag().from(a => React.createElement("output-pane", null,
-    React.createElement("iframe", { id: "outputPane", src: "about:blank", border: "0", frameborder: "0", "is-active": !vm.isPicking$() }),
-    React.createElement(OutputPaneCover, { id: "outputPaneCover" }),
-    React.createElement("output-pane-toolbar", { role: "toolbar" },
-        React.createElement("button", { onclick: e => vm.isPicking$(!vm.isPicking$()) }, "\u22B3"),
-        React.createElement("button", { onclick: e => vm.refreshWatches() }, "\u21BB"))));
+}).from(function (a, c, self) {
+    return React.createElement("output-pane-cover", __assign({ block: true, id: a.id, "is-active": vm.isPicking$() }, self.getPointerOrMouseEvents()),
+        React.createElement("margin-box", { block: true, hidden: self.shouldBeHidden(), style: self.boxStyles$().marginBox },
+            React.createElement("border-box", { block: true, style: self.boxStyles$().borderBox },
+                React.createElement("padding-box", { block: true, style: self.boxStyles$().paddingBox },
+                    React.createElement("content-box", { block: true, style: self.boxStyles$().contentBox })))));
+});
+var HTMLPane = new Tag().from(function (a) {
+    return React.createElement("html-pane", { "is-focused": a.isFocused$(), "disabled-style": { 'flex-grow': tm.html ? 3 : 1 } },
+        React.createElement(MonacoTextEditor, { id: "htmlPaneEditor", "value$": tm.html$, language: "html", "isFocused$": a.isFocused$ }));
+});
+var CSSPane = new Tag().from(function (a) {
+    return React.createElement("css-pane", { "is-focused": a.isFocused$(), "disabled-style": { 'flex-grow': tm.css ? 3 : 1 } },
+        React.createElement(MonacoTextEditor, { id: "cssPaneEditor", "value$": tm.css$, language: "css", "isFocused$": a.isFocused$ }));
+});
+var JSPane = new Tag().from(function (a) {
+    return React.createElement("js-pane", { "is-focused": a.isFocused$(), "disabled-style": { 'flex-grow': tm.jsBody ? 3 : 1 } },
+        React.createElement(MonacoTextEditor, { id: "jsPaneEditor", "value$": vm.jsCombined$, language: "javascript", "isFocused$": a.isFocused$ }));
+});
+var ToolsPane = new Tag().from(function (a) {
+    return React.createElement("tools-pane", null,
+        React.createElement(ToolsPaneToolbar, { "activePane$": vm.activeJsTab$ }),
+        React.createElement("tools-pane-tabs", null,
+            React.createElement(ToolsPaneWatches, { id: "jsPaneWatches", "activePane$": vm.activeJsTab$ }),
+            React.createElement(ToolsPaneConsole, { id: "jsPaneConsole", "activePane$": vm.activeJsTab$ }),
+            React.createElement(ToolsPaneCode, { id: "jsPaneHeadCode", "value$": tm.jsHead$, "activePane$": vm.activeJsTab$ }),
+            React.createElement(ToolsPaneCode, { id: "jsPaneBodyCode", "value$": tm.jsBody$, "activePane$": vm.activeJsTab$ })));
+});
+var OutputPane = new Tag().from(function (a) {
+    return React.createElement("output-pane", null,
+        React.createElement("iframe", { id: "outputPane", src: "about:blank", border: "0", frameborder: "0", "is-active": !vm.isPicking$() }),
+        React.createElement(OutputPaneCover, { id: "outputPaneCover" }),
+        React.createElement("output-pane-toolbar", { role: "toolbar" },
+            React.createElement("button", { onclick: function (e) { return vm.isPicking$(!vm.isPicking$()); } }, "\u22B3"),
+            React.createElement("button", { onclick: function (e) { return vm.refreshWatches(); } }, "\u21BB")));
+});
 var SelectorGenerationDialog = new Tag().with({
-    generateReplacement() {
+    generateReplacement: function () {
         var form = vm.selectorGenerationDialog;
         var w1 = window;
         // create the requested replacement, if possible
@@ -1789,13 +1962,13 @@ var SelectorGenerationDialog = new Tag().with({
                             window['$0'] = { id: form.chosenId$() };
                     }
                     // then return the value
-                    w1.$0replacement = `$(${JSON.stringify('#' + form.chosenId$())})`;
+                    w1.$0replacement = "$(" + JSON.stringify('#' + form.chosenId$()) + ")";
                 }
                 break;
             }
             case "selector": {
                 if (form.chosenSelector$()) {
-                    w1.$0replacement = `$(${JSON.stringify(form.chosenSelector$())})`;
+                    w1.$0replacement = "$(" + JSON.stringify(form.chosenSelector$()) + ")";
                 }
                 break;
             }
@@ -1808,71 +1981,75 @@ var SelectorGenerationDialog = new Tag().with({
             vm.addPinnedWatch(form.watchExpression$());
         }
     }
-}).from((a, s, self) => React.createElement("dialog", { as: "selector-generation-dialog", autofocus: true, hidden: !vm.selectorGenerationDialog.isOpened$() },
-    React.createElement("section", { tabindex: "-1" },
-        React.createElement("h1", null, "How do you want to do this?"),
-        React.createElement("form", { action: "POST", onsubmit: e => { e.preventDefault(); self.generateReplacement(); } },
-            React.createElement("label", { hidden: !vm.selectorGenerationDialog.isAutoAvailable$(), style: "display: block; margin-bottom: 10px" },
-                React.createElement(InputRadio, { name: "chosenMode", value: "auto", "checkedValue$": vm.selectorGenerationDialog.chosenMode$ }),
-                "Use the source index"),
-            React.createElement("label", { style: "display: block; margin-bottom: 10px" },
-                React.createElement(InputRadio, { name: "chosenMode", value: "id", "checkedValue$": vm.selectorGenerationDialog.chosenMode$ }),
-                "Assign an id the the element",
-                React.createElement(Input, { type: "text", "value$": vm.selectorGenerationDialog.chosenId$, onfocus: e => vm.selectorGenerationDialog.chosenMode$('id') })),
-            React.createElement("label", { style: "display: block; margin-bottom: 10px" },
-                React.createElement(InputRadio, { name: "chosenMode", value: "selector", "checkedValue$": vm.selectorGenerationDialog.chosenMode$ }),
-                "Use a css selector",
-                React.createElement(Input, { type: "text", "value$": vm.selectorGenerationDialog.chosenSelector$, onfocus: e => vm.selectorGenerationDialog.chosenMode$('selector') })),
-            React.createElement("footer", { style: "margin-top: 20px" },
-                React.createElement("input", { type: "submit", value: "OK" }),
-                "\u00A0",
-                React.createElement("input", { type: "button", value: "Cancel", onclick: e => vm.selectorGenerationDialog.isOpened$(false) }))))));
+}).from(function (a, s, self) {
+    return React.createElement("dialog", { as: "selector-generation-dialog", autofocus: true, hidden: !vm.selectorGenerationDialog.isOpened$() },
+        React.createElement("section", { tabindex: "-1" },
+            React.createElement("h1", null, "How do you want to do this?"),
+            React.createElement("form", { action: "POST", onsubmit: function (e) { e.preventDefault(); self.generateReplacement(); } },
+                React.createElement("label", { hidden: !vm.selectorGenerationDialog.isAutoAvailable$(), style: "display: block; margin-bottom: 10px" },
+                    React.createElement(InputRadio, { name: "chosenMode", value: "auto", "checkedValue$": vm.selectorGenerationDialog.chosenMode$ }),
+                    "Use the source index"),
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    React.createElement(InputRadio, { name: "chosenMode", value: "id", "checkedValue$": vm.selectorGenerationDialog.chosenMode$ }),
+                    "Assign an id the the element",
+                    React.createElement(Input, { type: "text", "value$": vm.selectorGenerationDialog.chosenId$, onfocus: function (e) { return vm.selectorGenerationDialog.chosenMode$('id'); } })),
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    React.createElement(InputRadio, { name: "chosenMode", value: "selector", "checkedValue$": vm.selectorGenerationDialog.chosenMode$ }),
+                    "Use a css selector",
+                    React.createElement(Input, { type: "text", "value$": vm.selectorGenerationDialog.chosenSelector$, onfocus: function (e) { return vm.selectorGenerationDialog.chosenMode$('selector'); } })),
+                React.createElement("footer", { style: "margin-top: 20px" },
+                    React.createElement("input", { type: "submit", value: "OK" }),
+                    "\u00A0",
+                    React.createElement("input", { type: "button", value: "Cancel", onclick: function (e) { return vm.selectorGenerationDialog.isOpened$(false); } })))));
+});
 var SettingsDialog = new Tag().with({
-    close() {
+    close: function () {
         var form = vm.settingsDialog;
         form.isOpened$(false);
     }
-}).from((a, s, self) => React.createElement("dialog", { as: "settings-dialog", autofocus: true, hidden: !vm.settingsDialog.isOpened$() },
-    React.createElement("section", { tabindex: "-1" },
-        React.createElement("h1", null, "Settings"),
-        React.createElement("form", { action: "POST", onsubmit: e => { e.preventDefault(); self.close(); } },
-            React.createElement("label", { style: "display: block; margin-bottom: 10px" },
-                React.createElement("button", { onclick: e => vm.settingsDialog.openWelcomeDialog() },
-                    React.createElement("span", { class: "icon" }, "\uD83D\uDEC8"),
-                    "Open the welcome screen")),
-            React.createElement("label", { style: "display: block; margin-bottom: 10px" },
-                React.createElement("button", { onclick: e => vm.settingsDialog.openSearchDialog() },
-                    React.createElement("span", { class: "icon" }, "\uD83D\uDD0E"),
-                    "Search existing test cases")),
-            React.createElement("hr", null),
-            React.createElement("label", { style: "display: block; margin-bottom: 10px" },
-                React.createElement("button", { hidden: vm.githubIsConnected$(), onclick: e => vm.settingsDialog.logIn() },
-                    React.createElement("span", { class: "icon" }, "\uD83D\uDD12"),
-                    "Log In using your Github account"),
-                React.createElement("button", { hidden: !vm.githubIsConnected$(), onclick: e => vm.settingsDialog.logOut() },
-                    React.createElement("span", { class: "icon" }, "\uD83D\uDD12"),
-                    "Log Out of your Github account (",
-                    vm.githubUserName$(),
-                    ")")),
-            React.createElement("label", { style: "display: block; margin-bottom: 10px" },
-                React.createElement("button", { hidden: !vm.settingsDialog.useMonaco$(), onclick: e => vm.settingsDialog.useMonaco$(false), style: "display: block" },
-                    React.createElement("span", { class: "icon" }, "\u2699"),
-                    "Disable the advanced text editor on this device from now on"),
-                React.createElement("button", { hidden: vm.settingsDialog.useMonaco$(), onclick: e => vm.settingsDialog.useMonaco$(true), style: "display: block" },
-                    React.createElement("span", { class: "icon" }, "\u2699"),
-                    "Enable the advanced text editor on this device from now on")),
-            React.createElement("footer", { style: "margin-top: 20px" },
-                React.createElement("input", { type: "submit", value: "Close" }))))));
+}).from(function (a, s, self) {
+    return React.createElement("dialog", { as: "settings-dialog", autofocus: true, hidden: !vm.settingsDialog.isOpened$() },
+        React.createElement("section", { tabindex: "-1" },
+            React.createElement("h1", null, "Settings"),
+            React.createElement("form", { action: "POST", onsubmit: function (e) { e.preventDefault(); self.close(); } },
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    React.createElement("button", { onclick: function (e) { return vm.settingsDialog.openWelcomeDialog(); } },
+                        React.createElement("span", { class: "icon" }, "\uD83D\uDEC8"),
+                        "Open the welcome screen")),
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    React.createElement("button", { onclick: function (e) { return vm.settingsDialog.openSearchDialog(); } },
+                        React.createElement("span", { class: "icon" }, "\uD83D\uDD0E"),
+                        "Search existing test cases")),
+                React.createElement("hr", null),
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    React.createElement("button", { hidden: vm.githubIsConnected$(), onclick: function (e) { return vm.settingsDialog.logIn(); } },
+                        React.createElement("span", { class: "icon" }, "\uD83D\uDD12"),
+                        "Log In using your Github account"),
+                    React.createElement("button", { hidden: !vm.githubIsConnected$(), onclick: function (e) { return vm.settingsDialog.logOut(); } },
+                        React.createElement("span", { class: "icon" }, "\uD83D\uDD12"),
+                        "Log Out of your Github account (",
+                        vm.githubUserName$(),
+                        ")")),
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    React.createElement("button", { hidden: !vm.settingsDialog.useMonaco$(), onclick: function (e) { return vm.settingsDialog.useMonaco$(false); }, style: "display: block" },
+                        React.createElement("span", { class: "icon" }, "\u2699"),
+                        "Disable the advanced text editor on this device from now on"),
+                    React.createElement("button", { hidden: vm.settingsDialog.useMonaco$(), onclick: function (e) { return vm.settingsDialog.useMonaco$(true); }, style: "display: block" },
+                        React.createElement("span", { class: "icon" }, "\u2699"),
+                        "Enable the advanced text editor on this device from now on")),
+                React.createElement("footer", { style: "margin-top: 20px" },
+                    React.createElement("input", { type: "submit", value: "Close" })))));
+});
 var SearchDialog = new Tag().with({
-    search() {
+    search: function () {
         var form = vm.searchDialog;
         form.searchUrl$('/search?q=' + encodeURIComponent(form.searchTerms$()) + '&time=' + Date.now());
     },
-    close() {
+    close: function () {
         var form = vm.searchDialog;
         form.isOpened$(false);
     },
-    onupdate() {
+    onupdate: function () {
         var form = vm.searchDialog;
         if (this.wasOpened != form.isOpened$()) {
             if (this.wasOpened) {
@@ -1883,33 +2060,37 @@ var SearchDialog = new Tag().with({
             }
         }
     }
-}).from((a, s, self) => React.createElement("dialog", { as: "search-dialog", autofocus: true, hidden: !vm.searchDialog.isOpened$() },
-    React.createElement("section", { tabindex: "-1", role: "search", style: "width: 80%; width: 80vw" },
-        React.createElement("h1", null, "Search testcases"),
-        React.createElement("form", { action: "POST", onsubmit: e => { e.preventDefault(); self.search(); } },
-            React.createElement("p", { style: "font-size: 10px" }, "Search terms are separated by spaces, and must all match for the result to be returned; You can use the --html --css --js --author modifiers to narrow down the search. Out of these, only --author considers its arguments as alternatives."),
-            React.createElement("p", { style: "font-size: 10px; color: green;" }, "Example: \"table --css border hidden --author FremyCompany gregwhitworth\" will return all test cases containing \"table\" in any code field, containing both border & hidden in their css code, and that have been written by FremyCompany or gregwhitworth."),
-            React.createElement("div", { style: "display: flex;" },
-                React.createElement(Input, { placeholder: "search terms here", "value$": vm.searchDialog.searchTerms$, style: "flex: 1 0 0" }),
-                React.createElement("input", { type: "submit", value: "Search" })),
-            React.createElement("iframe", { frameborder: "0", border: "0", src: vm.searchDialog.searchUrl$() }),
-            React.createElement("footer", { style: "margin-top: 5px" },
-                React.createElement("input", { type: "button", onclick: e => self.close(), value: "Close" }))))));
+}).from(function (a, s, self) {
+    return React.createElement("dialog", { as: "search-dialog", autofocus: true, hidden: !vm.searchDialog.isOpened$() },
+        React.createElement("section", { tabindex: "-1", role: "search", style: "width: 80%; width: 80vw" },
+            React.createElement("h1", null, "Search testcases"),
+            React.createElement("form", { action: "POST", onsubmit: function (e) { e.preventDefault(); self.search(); } },
+                React.createElement("p", { style: "font-size: 10px" }, "Search terms are separated by spaces, and must all match for the result to be returned; You can use the --html --css --js --author modifiers to narrow down the search. Out of these, only --author considers its arguments as alternatives."),
+                React.createElement("p", { style: "font-size: 10px; color: green;" }, "Example: \"table --css border hidden --author FremyCompany gregwhitworth\" will return all test cases containing \"table\" in any code field, containing both border & hidden in their css code, and that have been written by FremyCompany or gregwhitworth."),
+                React.createElement("div", { style: "display: flex;" },
+                    React.createElement(Input, { placeholder: "search terms here", "value$": vm.searchDialog.searchTerms$, style: "flex: 1 0 0px" }),
+                    React.createElement("input", { type: "submit", value: "Search" })),
+                React.createElement("iframe", { frameborder: "0", border: "0", src: vm.searchDialog.searchUrl$() }),
+                React.createElement("footer", { style: "margin-top: 5px" },
+                    React.createElement("input", { type: "button", onclick: function (e) { return self.close(); }, value: "Close" })))));
+});
 var WelcomeDialog = new Tag().with({
-    close() {
+    close: function () {
         var form = vm.welcomeDialog;
         localStorage.setItem('noWelcome', 'true');
         form.isOpened$(false);
     }
-}).from((a, s, self) => React.createElement("dialog", { as: "welcome-dialog", autofocus: true, hidden: !vm.welcomeDialog.isOpened$() },
-    React.createElement("section", { tabindex: "-1" },
-        React.createElement("h1", null, "The Web Platform Test Center"),
-        React.createElement("form", { action: "POST", onsubmit: e => { e.preventDefault(); self.close(); } },
-            React.createElement("p", null, "This websites provides tools to simplify the creation of reduced web platform test cases and the search of previously-written test cases."),
-            React.createElement("p", null, "It is primarily addressed at engineers who build web browsers, and web developers who want to help bugs getting fixed by filing reduced issues on existing browsers."),
-            React.createElement("footer", { style: "margin-top: 20px" },
-                React.createElement("input", { type: "submit", value: " Got it! " }))))));
-var TestEditorView = new Tag().from(a => {
+}).from(function (a, s, self) {
+    return React.createElement("dialog", { as: "welcome-dialog", autofocus: true, hidden: !vm.welcomeDialog.isOpened$() },
+        React.createElement("section", { tabindex: "-1" },
+            React.createElement("h1", null, "The Web Platform Test Center"),
+            React.createElement("form", { action: "POST", onsubmit: function (e) { e.preventDefault(); self.close(); } },
+                React.createElement("p", null, "This websites provides tools to simplify the creation of reduced web platform test cases and the search of previously-written test cases."),
+                React.createElement("p", null, "It is primarily addressed at engineers who build web browsers, and web developers who want to help bugs getting fixed by filing reduced issues on existing browsers."),
+                React.createElement("footer", { style: "margin-top: 20px" },
+                    React.createElement("input", { type: "submit", value: " Got it! " })))));
+});
+var TestEditorView = new Tag().from(function (a) {
     // if the page moved to a new id 
     // then we need to reset all data and download the new test
     if (a.id != vm.currentTestId$() && (a.id == location.hash.substr(2) || (a.id.substr(0, 5) == 'json:' && location.hash.substr(0, 7) == '#/json:'))) {
@@ -1934,7 +2115,7 @@ var TestEditorView = new Tag().from(a => {
                 localStorage.removeItem('local:save');
                 if (id != 'local:save' && vm.githubIsConnected$()) {
                     setTimeout(function () {
-                        if (confirm(`Welcome back, ${vm.githubUserName$()}! Should we save your test online now?`)) {
+                        if (confirm("Welcome back, " + vm.githubUserName$() + "! Should we save your test online now?")) {
                             localStorage.removeItem(id);
                             vm.saveOnline();
                         }
@@ -1943,12 +2124,12 @@ var TestEditorView = new Tag().from(a => {
             }
         }
         else if (id.indexOf('json:') == 0) {
-            vm.openFromJSON(JSON.parse(decodeURIComponent(location.hash.substr('#/json:'.length))));
+            vm.openFromJSON(JSON.parse(decodeHash(location.hash.substr('#/json:'.length))));
         }
         else if (id && id != 'new') {
             vm.isLoading$(true);
             vm.openFromJSON(null);
-            fetch('/uploads/' + id + '.json').then(r => r.json()).then(d => {
+            fetch('/uploads/' + id + '.json').then(function (r) { return r.json(); }).then(function (d) {
                 vm.openFromJSON(d);
             });
         }

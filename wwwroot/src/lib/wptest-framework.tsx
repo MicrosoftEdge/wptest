@@ -238,7 +238,7 @@ function cachedDualCast<I,O>(input$: Prop<I>, convertInput: (i:I)=>O, convertOut
 	} as any
 }
 
-function bindTo(x: Prop<string>, attr:string="value") {
+function bindTo(x: Prop<string|boolean|number>, attr:string="value") {
 	return m.withAttr(attr, x);
 }
 
