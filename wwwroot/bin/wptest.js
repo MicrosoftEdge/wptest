@@ -1097,6 +1097,10 @@ var ViewModel = (function () {
             location.hash = "#/json:" + encodeHash(JSON.stringify(getTestData()));
             vm.currentTestId$(location.hash.substr(2));
             redraw();
+            // pad has no easy-to-use address bar, so provide an easy source to copy the url:
+            if (window.external && "DoEvents" in window.external) {
+                prompt("Copy the url from here:", location.href);
+            }
         });
     };
     /** Saves the test model in the localStorage */
@@ -1205,11 +1209,21 @@ var ViewModel = (function () {
             }
             html += String.raw.apply(String, args) + '\n';
         }
-        (_a = ["<!DOCTYPE html>"], _a.raw = ["<!DOCTYPE html>"], ln(_a));
+        // extract the doctype, if any (default to html5 doctype)
+        var doctype = "<!doctype html>";
+        var tm_html = tm.html.replace(/<!doctype .*?>\s*\r?\n?/gi, function (value) {
+            doctype = value.trim();
+            return '';
+        }).trim();
+        // start the document
+        (_a = ["", ""], _a.raw = ["", ""], ln(_a, doctype));
         // ensure test case title:
         if (!tm.title || tm.title == "UntitledTest") {
             try {
                 tm.title = prompt("Enter a title for your test", tm.title);
+                if (!tm.title) {
+                    tm.title = 'UntitledTest';
+                }
             }
             catch (ex) {
                 // do nothing
@@ -1241,9 +1255,9 @@ var ViewModel = (function () {
         if (tm.css) {
             (_g = ["<style>", "</style>"], _g.raw = ["<style>", "</style>"], ln(_g, "\n\n" + tm.css + "\n\n"));
         }
-        if (tm.html) {
+        if (tm_html) {
             (_h = [""], _h.raw = [""], ln(_h));
-            (_j = ["", ""], _j.raw = ["", ""], ln(_j, tm.html));
+            (_j = ["", ""], _j.raw = ["", ""], ln(_j, tm_html));
             (_k = [""], _k.raw = [""], ln(_k));
         }
         if (tm.jsBody) {
@@ -2156,7 +2170,7 @@ function updatePageTitle() {
     var titlePart = '';
     var urlPart = '';
     var id = vm.currentTestId$();
-    if (id && id != 'new') {
+    if (id && id != 'new' && id.substr(0, 5) != 'json:') {
         urlPart = 'wptest.center/#/' + id;
     }
     else {
