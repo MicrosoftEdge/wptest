@@ -900,7 +900,7 @@ function updatePageTitle() {
 	var titlePart = '';
 	var urlPart = '';
 	var id = vm.currentTestId$();
-	if(id && id != 'new') {
+	if(id && id != 'new' && id.substr(0,5) != 'json:') {
 		urlPart = 'wptest.center/#/' + id;
 	} else {
 		urlPart = 'wptest.center';

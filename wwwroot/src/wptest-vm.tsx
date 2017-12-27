@@ -624,6 +624,10 @@ class ViewModel {
 			location.hash = "#/json:" + encodeHash(JSON.stringify(getTestData()));
 			vm.currentTestId$(location.hash.substr(2));
 			redraw();
+			// pad has no easy-to-use address bar, so provide an easy source to copy the url:
+			if(window.external && "DoEvents" in window.external) {
+				prompt("Copy the url from here:", location.href);
+			}
 		})
 	}
 
