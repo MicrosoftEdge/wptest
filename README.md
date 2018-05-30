@@ -11,3 +11,6 @@ to the version of MongoDB installed. (**3.4** to your version)
 4. Run `mongo.cmd` command first. (double-click cmd file from file explorer or run `./mongo.cmd` from terminal)
 5. Run `complie.cmd` on any changes made.
 6. Run `node app` (in terminal) to start running locally at <http://localhost:3000>
+
+## Contributions
+Check [CONTRIBUTIONS.md](CONTRIBUTING.md) for instructions to contribute to the project and install/run the project on your system.
