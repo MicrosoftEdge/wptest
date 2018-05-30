@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 var fs = require('fs')
 var express = require('express')
 var session = require('express-session')

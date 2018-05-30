@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 ///
 /// This files contains a few helpers just because I am lazy :)
 ///

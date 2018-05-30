@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 ///
 /// This file contains mithril extensions to build my own framework
 ///

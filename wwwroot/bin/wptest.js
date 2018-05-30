@@ -6,9 +6,8 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
     }
     return t;
 };
-///
-/// This files contains a few helpers just because I am lazy :)
-///
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
 /// <reference path="mithril.d.ts" />
 var d = document;
 var w = window;
@@ -327,9 +326,8 @@ if (!String.raw) {
         }).join('');
     };
 }
-///
-/// This file contains mithril extensions to build my own framework
-///
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
 /// <reference path="monaco.d.ts" />
 /// <reference path="wptest-helpers.tsx" />
 m.route.prefix('#');
@@ -504,6 +502,8 @@ function attributesOf(a) {
     }
     return o;
 }
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
 ///
 /// This file contains the view model of the application
 ///
@@ -1389,6 +1389,8 @@ var SearchDialogViewModel = (function () {
     return SearchDialogViewModel;
 }());
 var vm = new ViewModel();
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
 /// <reference path="wptest-vm.tsx" />
 var Input = new Tag().from(function (a) {
     return React.createElement("input", __assign({}, attributesOf(a), { value: a.value$(), oninput: bindTo(a.value$), onchange: bindTo(a.value$) }));
