@@ -39,7 +39,7 @@ This project was completed in [Typescript](http://www.typescriptlang.org/). For 
 
 `wptest-vm.tsx` contains the model of the data that the view is in sync with and displays.
 
-`wptest.tsx` contains the elements and the logic of the view. View elements are written using the [React and JSX](https://reactjs.org/docs/jsx-in-depth.html) syntax, but under the hood is using [mithril](https://mithril.js.org/jsx.html) as base for a [custom framework](wwwroot/src/lib/wptest-framework.tsx). Essentially each `Tag` represent a DOM element, and can define (bound) attributes which you can use to pass data into it. Additionally, you can define helper functions within the scope of the element, and use local state where appropriate.
+`wptest.tsx` contains the elements and the logic of the view. View elements are written using the [React and JSX](https://reactjs.org/docs/jsx-in-depth.html) syntax, but under the hood use [mithril](https://mithril.js.org/jsx.html) as base for a [custom framework](wwwroot/src/lib/wptest-framework.tsx). Essentially each `Tag` represent a DOM element, and can define (bound) attributes which you can use to pass data into it. Additionally, you can define helper functions within the scope of the element, and use local state where appropriate.
 
 This project uses the [Monaco (Visual Studio Code Online Editor)](https://github.com/Microsoft/monaco-editor) as its editor. You can find its definition in [monaco.d.ts](wwwroot/src/lib/monaco.d.ts)
 
