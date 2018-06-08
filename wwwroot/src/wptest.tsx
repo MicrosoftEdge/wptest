@@ -63,9 +63,6 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 					},
 					language: node.attrs.language,
 				});
-				this.editor.updateOptions({
-					acceptSuggestionOnEnter: false,
-				});
 				this.editor.getModel().updateOptions({ 
 					insertSpaces: false, 
 					tabSize: 4,

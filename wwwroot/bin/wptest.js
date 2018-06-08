@@ -1,3 +1,7 @@
+var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cooked, raw) {
+    if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
+    return cooked;
+};
 var __assign = (this && this.__assign) || Object.assign || function(t) {
     for (var s, i = 1, n = arguments.length; i < n; i++) {
         s = arguments[i];
@@ -32,7 +36,7 @@ var convertObjectToDescription = function (arg) {
         return "undefined";
     if (arg instanceof String)
         return arg; // only string objects can get through
-    if (typeof arg == "number") {
+    if (typeof arg == "number") { // we allow more than what json recognizes
         if (Number.isNaN(arg))
             return "Number.NaN";
         if (!Number.isFinite(arg) && arg >= 0)
@@ -402,7 +406,7 @@ React = {
         return typeof (t) == 'string' ? m(t, a, children) : m(t(), a, children);
     }
 };
-var Tag = (function () {
+var Tag = /** @class */ (function () {
     function Tag() {
         this.prototype = Object.prototype;
     }
@@ -543,7 +547,7 @@ function appendToConsole(logo, content) {
 /** Converts the javascript code of watches to standard javascript */
 function expandShorthandsIn(jsCode) {
     var describeCode = "(node => node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : ''))(";
-    if ("ActiveXObject" in window) {
+    if ("ActiveXObject" in window) { /* ie hack */
         describeCode = "(function(node){ return node.nodeName + (node.id ? '#' + node.id : '') + (node.classList.length ? '.' + node.classList[0] : '') })(";
     }
     return (jsCode
@@ -594,7 +598,7 @@ var getTestData = function () {
     return tmData;
 };
 /** The data used to represent the current state of the view */
-var ViewModel = (function () {
+var ViewModel = /** @class */ (function () {
     function ViewModel() {
         // ===================================================
         // github state (readonly)
@@ -1216,7 +1220,7 @@ var ViewModel = (function () {
             return '';
         }).trim();
         // start the document
-        (_a = ["", ""], _a.raw = ["", ""], ln(_a, doctype));
+        ln(__makeTemplateObject(["", ""], ["", ""]), doctype);
         // ensure test case title:
         if (!tm.title || tm.title == "UntitledTest") {
             try {
@@ -1230,10 +1234,10 @@ var ViewModel = (function () {
             }
         }
         if (tm.title) {
-            (_b = ["<title>", "</title>"], _b.raw = ["<title>", "</title>"], ln(_b, tm.title.replace(/</g, "&lt;").replace(/>/g, "&gt;")));
+            ln(__makeTemplateObject(["<title>", "</title>"], ["<title>", "</title>"]), tm.title.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
         }
         else {
-            (_c = ["<title>UntitledTest</title>"], _c.raw = ["<title>UntitledTest</title>"], ln(_c));
+            ln(__makeTemplateObject(["<title>UntitledTest</title>"], ["<title>UntitledTest</title>"]));
         }
         // ensure test case harness:
         var pathToHarness = "/resources/";
@@ -1246,30 +1250,30 @@ var ViewModel = (function () {
         catch (ex) {
             // do nothing
         }
-        (_d = ["<script src=\"", "testharness.js\"></script>"], _d.raw = ["<script src=\"", "testharness.js\"></script>"], ln(_d, pathToHarness));
-        (_e = ["<script src=\"", "testharnessreport.js\"></script>"], _e.raw = ["<script src=\"", "testharnessreport.js\"></script>"], ln(_e, pathToHarness));
+        ln(__makeTemplateObject(["<script src=\"", "testharness.js\"></script>"], ["<script src=\"", "testharness.js\"></script>"]), pathToHarness);
+        ln(__makeTemplateObject(["<script src=\"", "testharnessreport.js\"></script>"], ["<script src=\"", "testharnessreport.js\"></script>"]), pathToHarness);
         // append the test case itself
         if (tm.jsHead) {
-            (_f = ["<script>", "</script>"], _f.raw = ["<script>", "</script>"], ln(_f, "\n\n" + tm.jsHead + "\n\n"));
+            ln(__makeTemplateObject(["<script>", "</script>"], ["<script>", "</script>"]), "\n\n" + tm.jsHead + "\n\n");
         }
         if (tm.css) {
-            (_g = ["<style>", "</style>"], _g.raw = ["<style>", "</style>"], ln(_g, "\n\n" + tm.css + "\n\n"));
+            ln(__makeTemplateObject(["<style>", "</style>"], ["<style>", "</style>"]), "\n\n" + tm.css + "\n\n");
         }
         if (tm_html) {
-            (_h = [""], _h.raw = [""], ln(_h));
-            (_j = ["", ""], _j.raw = ["", ""], ln(_j, tm_html));
-            (_k = [""], _k.raw = [""], ln(_k));
+            ln(__makeTemplateObject([""], [""]));
+            ln(__makeTemplateObject(["", ""], ["", ""]), tm_html);
+            ln(__makeTemplateObject([""], [""]));
         }
         if (tm.jsBody) {
-            (_l = ["<script>", "</script>"], _l.raw = ["<script>", "</script>"], ln(_l, "\n\n" + tm.jsBody + "\n\n"));
+            ln(__makeTemplateObject(["<script>", "</script>"], ["<script>", "</script>"]), "\n\n" + tm.jsBody + "\n\n");
         }
-        (_m = ["<script>\nvar test_description = document.title;\npromise_test(\n\tt => {\n\t\treturn new Promise(test => addEventListener('load', e=>test()))\n\t\t", "\n\t},\n\ttest_description\n);\n</script>"], _m.raw = ["<script>\nvar test_description = document.title;\npromise_test(\n\tt => {\n\t\treturn new Promise(test => addEventListener('load', e=>test()))\n\t\t",
-            "\n\t},\n\ttest_description\n);\n</script>"], ln(_m, Array.from(tm.watches).map(function (expr) { return ({
+        ln(__makeTemplateObject(["<script>\nvar test_description = document.title;\npromise_test(\n\tt => {\n\t\treturn new Promise(test => addEventListener('load', e=>test()))\n\t\t", "\n\t},\n\ttest_description\n);\n</script>"], ["<script>\nvar test_description = document.title;\npromise_test(\n\tt => {\n\t\treturn new Promise(test => addEventListener('load', e=>test()))\n\t\t",
+            "\n\t},\n\ttest_description\n);\n</script>"]), Array.from(tm.watches).map(function (expr) { return ({
             expression: expr,
             jsValue: vm.watchValues[expr]
         }); }).filter(function (w) { return !!w.expression; }).map(function (w) {
             return ".then(test => assert_equals(" + expandShorthandsIn(w.expression) + ", " + JSON.stringify(w.jsValue) + ", " + JSON.stringify("Invalid " + w.expression + ";") + "))";
-        }).join('\n\t\t')));
+        }).join('\n\t\t'));
         var blob = new Blob([html], { type: 'text/html' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
@@ -1277,11 +1281,10 @@ var ViewModel = (function () {
         a.href = url;
         a.click();
         setTimeout(function (x) { return URL.revokeObjectURL(url); }, 10000);
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
     };
     return ViewModel;
 }());
-var SelectorGenerationDialogViewModel = (function () {
+var SelectorGenerationDialogViewModel = /** @class */ (function () {
     function SelectorGenerationDialogViewModel(vm) {
         /** The attached view model */
         this.vm = null;
@@ -1305,7 +1308,7 @@ var SelectorGenerationDialogViewModel = (function () {
     }
     return SelectorGenerationDialogViewModel;
 }());
-var SettingsDialogViewModel = (function () {
+var SettingsDialogViewModel = /** @class */ (function () {
     function SettingsDialogViewModel(vm) {
         var _this = this;
         /** The attached view model */
@@ -1342,7 +1345,7 @@ var SettingsDialogViewModel = (function () {
     };
     return SettingsDialogViewModel;
 }());
-var WelcomeDialogViewModel = (function () {
+var WelcomeDialogViewModel = /** @class */ (function () {
     function WelcomeDialogViewModel(vm) {
         /** The attached view model */
         this.vm = null;
@@ -1363,7 +1366,7 @@ var WelcomeDialogViewModel = (function () {
     }
     return WelcomeDialogViewModel;
 }());
-var SearchDialogViewModel = (function () {
+var SearchDialogViewModel = /** @class */ (function () {
     function SearchDialogViewModel(vm) {
         /** The attached view model */
         this.vm = null;
@@ -1450,9 +1453,6 @@ var MonacoTextEditor = new Tag().with({
                     arrowSize: 0
                 },
                 language: node.attrs.language,
-            });
-            _this.editor.updateOptions({
-                acceptSuggestionOnEnter: false,
             });
             _this.editor.getModel().updateOptions({
                 insertSpaces: false,
@@ -1702,7 +1702,7 @@ var ToolsPaneWatches = new Tag().with({
     return React.createElement("tools-pane-watches", { block: true, id: a.id, "is-active-pane": a.activePane$() == a.id },
         React.createElement(Input, { class: "watch-filter-textbox", "value$": vm.watchFilterText$, onkeyup: function (e) { if (e.keyCode == 27) {
                 vm.watchFilterText$('');
-            } }, type: "text", required: true, placeholder: "🔎", title: "Filter the watch list" }),
+            } }, type: "text", required: true, placeholder: "\uD83D\uDD0E", title: "Filter the watch list" }),
         React.createElement("ul", { class: "watch-list" },
             React.createElement("li", null,
                 React.createElement("input", { type: "checkbox", checked: true, disabled: true, title: "Uncheck to delete this watch" }),
@@ -1821,7 +1821,9 @@ var OutputPaneCover = new Tag().with({
                 backgroundColor: "rgba(0,0,0,0.5)",
                 backgroundClip: "padding-box"
             },
-            contentBox: {}
+            contentBox: {
+            // nothing special
+            }
         };
         if (elm) {
             var es = gCS(elm);
