@@ -31,8 +31,9 @@ body > top-row > *, body > bottom-row > * {
 	html-pane { flex: 1 1 0px; position: relative; z-index: 3; }
 	css-pane { flex: 1 1 0px; position: relative; z-index: 2; }
 	js-pane { flex: 1 1 0px; position: relative; z-index: 1; }
-	tools-pane { flex: 1 1 0px; position: relative; }
-	output-pane { flex: 1 1 0px; position: relative; }
+	tools-pane[of="body"] { flex: 1 1 0px; position: relative; }
+	output-pane[of="body"] { flex: 2 2 0px; position: relative; }
+	dom-view-pane[of="body"] { flex: 1 1 0px; position: relative; }
 	html-pane[is-focused], css-pane[is-focused], js-pane[is-focused] { z-index: 9; }
 
 	body > dialog { 
@@ -355,6 +356,65 @@ output-pane {
 	}
 
 /* } */
+
+dom-view-pane {
+	display: flex;
+	overflow: auto;
+	overflow-y: hidden;
+	flex-direction: row;
+	height: 100%; /* Edge hack */
+	-ms-overflow-style: -ms-autohiding-scrollbar;
+}
+
+dom-view-pane:hover {
+	overflow: auto;
+}
+
+.domViewTree {
+	list-style-type: none;
+	padding-left: 1.0em;
+	white-space: nowrap;
+}
+
+.domViewTreeElement, .domViewTreeToggle {
+	position: relative;
+	top: 0px;
+	cursor: pointer;
+}
+
+.domViewTreeElement:hover {
+	outline-style: dotted;
+	outline-width: 1px;
+	outline-color: black;
+}
+
+dom-view-element {
+	position: relative;
+}
+
+.domViewTreeToggle {
+	position: absolute;
+	top: 0px;
+	color: gray;
+}
+
+.domViewTreeToggle:hover {
+	background-color: palegreen;
+	color: black;
+}
+
+li[of="dom-view-tree-element"] {
+	margin: 0.1em 0;
+}
+
+div[is-hidden], code[is-hidden] {
+	height: 0em;
+	overflow: hidden;
+}
+
+code[is-selected] {
+	background-color: cyan;
+}
 
 [role=toolbar] > button {
 	background: transparent;

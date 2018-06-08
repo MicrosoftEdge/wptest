@@ -14,6 +14,18 @@ var getOutputPane = function() : HTMLIFrameElement {
 	return outputPane;
 }
 
+/** The document representation of the output pane */
+var getOutputPaneElement= function(): Element {
+	if(!getOutputPane()) {
+		var parser = new DOMParser();
+		var doc = parser.parseFromString('', 'text/html');
+
+		return doc.documentElement;
+	}
+
+	return getOutputPane().contentDocument.documentElement;
+}
+
 /** The console pane (legacy code only) */
 interface Window { jsPaneConsoleOutput?: HTMLPreElement }
 function appendToConsole(logo, content) {
@@ -158,7 +170,6 @@ class ViewModel {
 	isHtmlPaneFocused$ = m.prop(false)
 	isCssPaneFocused$ = m.prop(false)
 	isJsPaneFocused$ = m.prop(false)
-	
 
 	// ===================================================
 	// jsPane settings
@@ -166,7 +177,22 @@ class ViewModel {
 	
 	/** The id of the currently active tab */
 	activeJsTab$ = m.prop('jsPaneWatches')
-	
+
+	// ===================================================
+	// dom viewer settings
+	// ===================================================
+
+	/** The last time the DOM Viewer Tree was updated */
+	lastDOMUpdateTime$ = m.prop(-1);
+
+	/** The HTML text being displayed in the tree of the DOM Viewer */
+	domViewerHTMLText$ = m.prop<string>("");
+
+	/** Update sate management of the DOM Viewer tree */
+	refreshDOMViewer() {
+		this.domViewerHTMLText$(getOutputPaneElement().outerHTML);
+		this.lastDOMUpdateTime$(performance.now());
+	}
 
 	// ===================================================
 	// watch settings
@@ -584,8 +610,9 @@ class ViewModel {
 			}
 		}
 		
-		// rerun the watches
+		// rerun the watches and refresh DOM viewer
 		this.refreshWatches();
+		this.refreshDOMViewer();
 		
 		//-------------------------------------------------------
 		

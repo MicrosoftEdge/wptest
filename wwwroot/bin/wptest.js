@@ -521,6 +521,15 @@ var getOutputPane = function () {
     }
     return outputPane;
 };
+/** The document representation of the output pane */
+var getOutputPaneElement = function () {
+    if (!getOutputPane()) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString('', 'text/html');
+        return doc.documentElement;
+    }
+    return getOutputPane().contentDocument.documentElement;
+};
 function appendToConsole(logo, content) {
     var jsPaneConsoleOutput = window.jsPaneConsoleOutput;
     if (jsPaneConsoleOutput) {
@@ -656,6 +665,13 @@ var ViewModel = /** @class */ (function () {
         /** The id of the currently active tab */
         this.activeJsTab$ = m.prop('jsPaneWatches');
         // ===================================================
+        // dom viewer settings
+        // ===================================================
+        /** The last time the DOM Viewer Tree was updated */
+        this.lastDOMUpdateTime$ = m.prop(-1);
+        /** The HTML text being displayed in the tree of the DOM Viewer */
+        this.domViewerHTMLText$ = m.prop("");
+        // ===================================================
         // watch settings
         // ===================================================
         /** This value should be updated each time the watches are modified, and trigger their UI update */
@@ -758,6 +774,11 @@ var ViewModel = /** @class */ (function () {
         /** Whether the test model is still waiting on some data from the server */
         this.isLoading$ = m.prop(false);
     }
+    /** Update sate management of the DOM Viewer tree */
+    ViewModel.prototype.refreshDOMViewer = function () {
+        this.domViewerHTMLText$(getOutputPaneElement().outerHTML);
+        this.lastDOMUpdateTime$(performance.now());
+    };
     ViewModel.prototype.setupExpectedValueFor = function (expr) {
         // get the current expected value if any
         var currentExpectedValue = this.watchExpectedValues[expr];
@@ -1061,8 +1082,9 @@ var ViewModel = /** @class */ (function () {
                 }
             }
         }
-        // rerun the watches
+        // rerun the watches and refresh DOM viewer
         this.refreshWatches();
+        this.refreshDOMViewer();
         //-------------------------------------------------------
         /** Detects newly inserted elements and note which html line generated them */
         function attributeLines(lineIndex) {
@@ -1732,7 +1754,7 @@ var ToolsPaneWatches = new Tag().with({
                         e.target.checked = false;
                     } } }),
                 React.createElement("input", { type: "text", readonly: true, title: expr, value: expr }),
-                React.createElement("output", null, "" + (vm.watchDisplayValues[expr] || '')));
+                React.createElement("output", { title: "" + (vm.watchDisplayValues[expr] || '') }, "" + (vm.watchDisplayValues[expr] || '')));
         })));
 });
 var ToolsPaneConsole = new Tag().with({
@@ -1950,6 +1972,125 @@ var OutputPane = new Tag().from(function (a) {
             React.createElement("button", { onclick: function (e) { return vm.isPicking$(!vm.isPicking$()); } }, "\u22B3"),
             React.createElement("button", { onclick: function (e) { return vm.refreshWatches(); } }, "\u21BB")));
 });
+var DOMViewElement = new Tag().with({
+    oncreate: function () {
+        this.visible = undefined;
+    },
+    setSelectedElement: function (e) {
+        vm.selectedElement$(e);
+        vm.refreshWatches(e);
+    },
+    isSelectedElement: function (e) {
+        return e === vm.selectedElement$();
+    },
+    // Computes an array of HTML text to display and indices of children elements
+    // Ex.    <p> <span> Foo </span> bar <span> text </span> </p>
+    //    =>  ["<p> ", 0, " bar ", 1, " </p>"]
+    // Used to recursively display all elements with recursive calls to children elements.
+    elementBody$: function (e) {
+        if (e.children.length == 0) {
+            return [e.outerHTML];
+        }
+        else {
+            var original = e.outerHTML;
+            var ret_1 = [];
+            ret_1.push(original);
+            var i_1 = 0;
+            // Split HTML text at children elements and replace with their indices.
+            Array.from(e.children).forEach(function (val) {
+                for (var _i = 0, ret_2 = ret_1; _i < ret_2.length; _i++) {
+                    var part = ret_2[_i];
+                    if (typeof part !== 'string') {
+                        continue;
+                    }
+                    var indexFound = part.indexOf(val.outerHTML);
+                    if (indexFound == -1) {
+                        continue;
+                    }
+                    var pre = part.slice(0, indexFound);
+                    var suf = part.slice((indexFound + val.outerHTML.length));
+                    var temp = [];
+                    temp.push(pre);
+                    temp.push(i_1);
+                    temp.push(suf);
+                    // Remove the part we split from the list of elements to only have the
+                    // split version within the array we will be returning
+                    var firstOccurrenceInRet = ret_1.indexOf(part);
+                    if (firstOccurrenceInRet !== -1) {
+                        ret_1.splice(firstOccurrenceInRet, 1);
+                    }
+                    ret_1 = ret_1.concat(temp);
+                }
+                i_1++;
+            });
+            // Ensure only html text and children element indices left
+            ret_1 = ret_1.filter(function (val) { return (typeof val === 'string' && val.length > 0) || typeof val === 'number'; });
+            return ret_1;
+        }
+    },
+    isVisible: function (a) {
+        if (!a.toggleable) {
+            return true;
+        }
+        if (this.visible === undefined) {
+            this.visible = (a.element.nodeName.toUpperCase() != 'HEAD');
+        }
+        return this.visible;
+    },
+    toggleVisibility: function () {
+        this.visible = !this.visible;
+    },
+    toggleButtonText$: function () {
+        if (this.visible || this.visible === undefined) {
+            return "-";
+        }
+        else {
+            return "+";
+        }
+    },
+    toggleText$: function (child) {
+        if (!this.visible) {
+            if (child.childNodes.length == 0) {
+                return child.outerHTML;
+            }
+            var childHTML = child.outerHTML;
+            var prefix = childHTML.substring(0, (childHTML.indexOf(">") + 1));
+            var suffix = childHTML.substring(childHTML.lastIndexOf("<"));
+            return prefix + " ... " + suffix;
+        }
+        return "";
+    }
+}).from(function (a, c, self) {
+    return React.createElement("dom-view-element", null,
+        React.createElement("code", { "is-hidden": (!a.toggleable || a.element.childNodes.length === 0), class: "domViewTreeToggle", onclick: function () { return self.toggleVisibility(); } }, "" + self.toggleButtonText$()),
+        React.createElement("ul", { class: "domViewTree" }, self.isVisible(a) ?
+            React.createElement("dom-view-tree-element", { "is-hidden": !(self.isVisible(a)) }, self.elementBody$(a.element).map(function (val) {
+                return React.createElement("li", null, (typeof val === 'string') ?
+                    React.createElement("code", { class: "domViewTreeElement", onclick: function () { return self.setSelectedElement(a.element); }, "is-selected": self.isSelectedElement(a.element) }, val)
+                    :
+                        React.createElement(DOMViewElement, { element: a.element.children[val], toggleable: true }));
+            }))
+            :
+                React.createElement("li", null,
+                    React.createElement("code", { class: "domViewTreeElement", onclick: function () { return self.setSelectedElement(a.element); }, "is-selected": self.isSelectedElement(a.element) }, self.toggleText$(a.element)))));
+});
+var DOMViewPane = new Tag().with({
+    getOutputTree: function () {
+        var lastDOMTreeText = vm.domViewerHTMLText$();
+        var lastDOMUpdateTime = vm.lastDOMUpdateTime$();
+        var shouldUpdate = (false
+            || this.lastKnownDOMUpdateTime != lastDOMUpdateTime
+            || this.savedTreeText != lastDOMTreeText);
+        if (!shouldUpdate) {
+            return this.savedTree;
+        }
+        this.savedTreeText = lastDOMTreeText;
+        var tree = this.savedTree = React.createElement(DOMViewElement, { element: getOutputPaneElement(), toggleable: false });
+        return tree;
+    }
+}).from(function (a, c, self) {
+    return React.createElement("dom-view-pane", null, self.getOutputTree());
+});
 var SelectorGenerationDialog = new Tag().with({
     generateReplacement: function () {
         var form = vm.selectorGenerationDialog;
@@ -2161,6 +2302,7 @@ var TestEditorView = new Tag().from(function (a) {
             React.createElement(JSPane, { "isFocused$": vm.isJsPaneFocused$ })),
         React.createElement("bottom-row", { row: true },
             React.createElement(OutputPane, null),
+            React.createElement(DOMViewPane, null),
             React.createElement(ToolsPane, null)),
         React.createElement(SelectorGenerationDialog, null),
         React.createElement(SettingsDialog, null),

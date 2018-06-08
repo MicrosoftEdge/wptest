@@ -363,7 +363,7 @@ var ToolsPaneWatches = new Tag <{ id:string, activePane$:Prop<string> }> ().with
 			<li hidden={vm.hiddenAutoWatches[expr]||!vm.watchFilter$().matches(expr)}>
 				<input type="checkbox" title="Check to pin this watch" onchange={e=>{if(e.target.checked) { vm.addPinnedWatch(expr); e.target.checked=false; }}} />
 				<input type="text" readonly title={expr} value={expr} />
-				<output>{`${vm.watchDisplayValues[expr]||''}`}</output>
+				<output title={`${vm.watchDisplayValues[expr]||''}`}>{`${vm.watchDisplayValues[expr]||''}`}</output>
 			</li>
 		)}</ul>
 	</tools-pane-watches>
@@ -612,6 +612,175 @@ var OutputPane = new Tag().from(a =>
 			<button onclick={e=>vm.refreshWatches()}>↻</button>
 		</output-pane-toolbar>
 	</output-pane>
+);
+
+interface DOMViewElementState { visible: boolean }
+var DOMViewElement = new Tag<{element: Element, toggleable: boolean}, DOMViewElementState>().with({
+	oncreate(this: DOMViewElementState) {
+		this.visible = undefined;
+	},
+
+	setSelectedElement(e: Element) {
+		vm.selectedElement$(e);
+		vm.refreshWatches(e);
+	},
+
+	isSelectedElement(e: Element): boolean {
+		return e === vm.selectedElement$()
+	},
+
+	// Computes an array of HTML text to display and indices of children elements
+	// Ex.    <p> <span> Foo </span> bar <span> text </span> </p>
+	//    =>  ["<p> ", 0, " bar ", 1, " </p>"]
+
+	// Used to recursively display all elements with recursive calls to children elements.
+	elementBody$(e: Element): Array<any> {
+		if (e.children.length == 0) {
+			return [e.outerHTML];
+		} else {
+			let original = e.outerHTML;
+			let ret = [];
+
+			ret.push(original);
+
+			let i = 0;
+
+			// Split HTML text at children elements and replace with their indices.
+			Array.from(e.children).forEach((val) => {
+				for(let part of ret) {
+					if (typeof part !== 'string') {
+						continue;
+					}
+
+					let indexFound = (part as string).indexOf(val.outerHTML)
+
+					if (indexFound == -1) {
+						continue;
+					}
+
+					let pre = part.slice(0, indexFound);
+					let suf = part.slice((indexFound + val.outerHTML.length))
+
+					let temp = [];
+
+					temp.push(pre);
+					temp.push(i);
+					temp.push(suf);
+
+					// Remove the part we split from the list of elements to only have the
+					// split version within the array we will be returning
+					let firstOccurrenceInRet = ret.indexOf(part);
+
+					if(firstOccurrenceInRet !== -1) {
+						ret.splice(firstOccurrenceInRet, 1);
+					}
+
+					ret = ret.concat(temp);
+				}
+				
+				i++;
+			})
+
+			// Ensure only html text and children element indices left
+			ret = ret.filter(val => (typeof val === 'string' && val.length > 0) || typeof val === 'number');
+			return ret;
+		}
+	},
+
+	isVisible(this: DOMViewElementState, a: {element: Element, toggleable: boolean}): boolean {
+		if (!a.toggleable) {
+			return true
+		}
+
+		if(this.visible === undefined) {
+			this.visible = (a.element.nodeName.toUpperCase() != 'HEAD')
+		}
+
+		return this.visible
+	},
+
+	toggleVisibility(this: DOMViewElementState) {
+		this.visible = !this.visible
+	},
+
+	toggleButtonText$(this: DOMViewElementState): string {
+		if(this.visible || this.visible === undefined) {
+			return "-"
+		} else {
+			return "+"
+		}
+	},
+
+	toggleText$(this: DOMViewElementState, child: Element): string {
+		if(!this.visible) {
+			if(child.childNodes.length == 0) {
+				return child.outerHTML;
+			}
+
+			let childHTML = child.outerHTML
+			let prefix = childHTML.substring(0, (childHTML.indexOf(">") + 1))
+			let suffix = childHTML.substring(childHTML.lastIndexOf("<"))
+			return `${prefix} ... ${suffix}`
+		}
+
+		return ""
+	}
+
+}).from((a, c, self) => 
+	<dom-view-element>
+		<code is-hidden={(!a.toggleable || a.element.childNodes.length === 0)} class="domViewTreeToggle" onclick={() => self.toggleVisibility()}>
+			{`${self.toggleButtonText$()}`}
+		</code>
+
+		<ul class="domViewTree">
+			{self.isVisible(a) ?
+			<dom-view-tree-element is-hidden={!(self.isVisible(a))}>
+				{self.elementBody$(a.element).map((val) =>
+					<li>
+						{(typeof val === 'string') ?
+						<code class ="domViewTreeElement" onclick={() => self.setSelectedElement(a.element)} is-selected={self.isSelectedElement(a.element)}> 
+							{val} 
+						</code> 
+						:
+						<DOMViewElement element={a.element.children[val]} toggleable={true}/>}
+					</li>
+				)}
+			</dom-view-tree-element>
+			:
+			<li>
+				<code class ="domViewTreeElement" onclick={() => self.setSelectedElement(a.element)} is-selected={self.isSelectedElement(a.element)}> 
+					{ self.toggleText$(a.element)} 
+				</code>
+			</li>}
+		</ul>
+	</dom-view-element>
+);
+
+
+interface DOMViewPaneState { savedTree: any, lastKnownDOMUpdateTime: number, savedTreeText: string }
+var DOMViewPane = new Tag<{},DOMViewPaneState>().with({
+	getOutputTree(this: DOMViewPaneState) {
+		var lastDOMTreeText = vm.domViewerHTMLText$();
+		var lastDOMUpdateTime = vm.lastDOMUpdateTime$();
+		var shouldUpdate = (false
+			|| this.lastKnownDOMUpdateTime != lastDOMUpdateTime
+			|| this.savedTreeText != lastDOMTreeText
+		);
+
+		if(!shouldUpdate) {
+			return this.savedTree
+		}
+
+		this.savedTreeText = lastDOMTreeText;
+
+		var tree = this.savedTree = <DOMViewElement element={getOutputPaneElement()} toggleable={false} />;
+		return tree;
+	}
+	
+}).from((a, c, self) => 
+	<dom-view-pane>
+		{self.getOutputTree()}
+	</dom-view-pane>
 );
 
 var SelectorGenerationDialog = new Tag().with({
@@ -880,6 +1049,7 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 
 			<bottom-row row>
 				<OutputPane />
+				<DOMViewPane />
 				<ToolsPane />
 			</bottom-row>
 
