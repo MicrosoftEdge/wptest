@@ -12,8 +12,8 @@ Licensed under the MIT License.
 	<link rel="stylesheet" href="style/base.css" />
 	<link rel="stylesheet" href="style/wptest.css" />
 	<script src="bin/cssbeautify.js" defer></script>
-	<script src="bin/monaco/min/vs/loader.js"></script>
-	<script>require.config({ paths: { 'vs': 'bin/monaco/min/vs' }}); localStorage.getItem('noMonaco') || require(['vs/editor/editor.main'],function(x){return x})</script>
+	<script src="bin/monaco-editor/min/vs/loader.js"></script>
+	<script>require.config({ paths: { 'vs': 'bin/monaco-editor/min/vs' }}); localStorage.getItem('noMonaco') || require(['vs/editor/editor.main'],function(x){return x})</script>
 </head>
 <body>
 	<script src="bin/wptest.js" async></script>

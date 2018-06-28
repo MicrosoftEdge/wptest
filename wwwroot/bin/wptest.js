@@ -1464,6 +1464,11 @@ var MonacoTextEditor = new Tag().with({
                 value: _this.value,
                 fontSize: 13,
                 lineNumbers: "off",
+                lineDecorationsWidth: 0,
+                lineNumbersMinChars: 0,
+                minimap: {
+                    enabled: false
+                },
                 scrollbar: {
                     useShadows: false,
                     verticalHasArrows: false,

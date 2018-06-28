@@ -51,6 +51,11 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 					value: this.value,
 					fontSize: 13,
 					lineNumbers: "off",
+					lineDecorationsWidth: 0,
+					lineNumbersMinChars: 0,
+					minimap: {
+						enabled: false
+					},
 					scrollbar: {
 						useShadows: false,
 						verticalHasArrows: false,
