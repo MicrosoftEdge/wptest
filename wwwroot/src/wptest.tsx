@@ -106,16 +106,18 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 
 						this.editor.getModel().onDidChangeContent(e => {
 							
-							var oldLineCount = 1 + e.range.endLineNumber - e.range.startLineNumber;
-							var newLineCount = countLines(e.text);
+							let change = e.changes[0]; // there seems to be only one change at a given time for HTML panel editing
+							
+							var oldLineCount = 1 + change.range.endLineNumber - change.range.startLineNumber;
+							var newLineCount = countLines(change.text);
 							var deltaLineCount = (newLineCount - oldLineCount);
 							var totalLineCount = countLines(editor.getValue());
 							var newLineMapping = new Array(totalLineCount);
 							for(var x = 0; x<totalLineCount; x++) {
-								if(x < e.range.startLineNumber) {
+								if(x < change.range.startLineNumber) {
 									newLineMapping[x] = crossMappingHelper(x);
-								} else if(x < e.range.startLineNumber + newLineCount - 1) {
-									newLineMapping[x] = crossMappingHelper(e.range.startLineNumber-1);
+								} else if(x < change.range.startLineNumber + newLineCount - 1) {
+									newLineMapping[x] = crossMappingHelper(change.range.startLineNumber-1);
 								} else {
 									newLineMapping[x] = crossMappingHelper(x - deltaLineCount);
 								}
@@ -302,9 +304,9 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 		<TextArea id={a.id+'Textbox'} value$={a.value$} hidden={!!s.editor} onkeydown={enableTabInTextarea} />
 		<monaco-text-editor-placeholder hidden={a.value$().length>0}>{(
 			{
-				'javascript': '// JAVASCRIPT CODE',
-				'html': '<!-- HTML MARKUP -->',
-				'css': '/* CSS STYLES */'
+				'javascript': ' // JAVASCRIPT CODE',
+				'html': ' <!-- HTML MARKUP -->',
+				'css': ' /* CSS STYLES */'
 			}[a.language] || '')
 		}</monaco-text-editor-placeholder>
 	</monaco-text-editor>
