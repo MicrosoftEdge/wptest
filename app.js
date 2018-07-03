@@ -252,7 +252,7 @@ app.get('/search', (req, res) => {
 			return true;
 		}) : [];
 		if(results.length) {
-			var html = results.map(r => `<a target="_top" href="/#/${r.id}">${r.id}: ${r.title} (${new Date(r.creationDate)})</a><br/>`).join('')
+			var html = results.map(r => `<a target="_top" href="/#/${r.id}">${r.id}: ${convertAnyHTMLIntoTextOnly(r.title)} (${new Date(r.creationDate)})</a><br/>`).join('')
 			res.status(200).send(html);
 		} else if (err) {
 			res.status(500).send(err.message || err);
@@ -260,6 +260,16 @@ app.get('/search', (req, res) => {
 			res.status(200).send("No result found")
 		}
 	})
+
+	// ================================================================
+
+	function convertAnyHTMLIntoTextOnly(text) {
+		let ret = text.split("<").join("&lt;")
+		ret = ret.split(">").join("&gt;")
+		return ret
+	}
+
+
 	/*//////////////////////////////////////////////////////////
 	// OLD CODE ASSUMING TEXT INDEX IS AVAILABLE
 	////////////////////////////////////////////////////////////
