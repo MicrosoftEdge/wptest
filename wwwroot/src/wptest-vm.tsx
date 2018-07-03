@@ -324,6 +324,38 @@ class ViewModel {
 
 	})
 
+	/** Fetches the testcases for the given user and  */
+	fetchTestcasesByUser(author:string) {
+		fetch(`/u/${author}`, {
+			method: 'GET',
+			credentials: "same-origin"
+		}).then((response) => {
+			response.text().then(text => {
+				this.userTestcasesDialog.tests$(JSON.parse(text))
+			})
+		}).catch(ex => {
+			console.error(ex);
+			console.log(`Oops, something went wrong... Can't seem to get the tests created by ${author}.`);
+		});
+	}
+
+	/** Deletes the test by the gievn id and author */
+	deleteTestcase(author:string, id:string) {
+		fetch(`/delete/t/${id}/${author}`, {
+			method: 'DELETE',
+			credentials: "same-origin"
+		}).then((response) => {
+			response.text().then(text => {
+				alert(text);
+				this.fetchTestcasesByUser(author)
+			})
+		}).catch(ex => {
+			console.error(ex);
+			alert("Oops, something went wrong... Try deleting the test again.");
+		});
+	}
+
+
 	/** Adds an expression to the list of watches (eventually bootstrapped with a value) */
 	addPinnedWatch(expr:string,value?) {
 
@@ -439,6 +471,8 @@ class ViewModel {
 		this.searchDialog.isOpened$(false);
 		this.welcomeDialog.isOpened$(false);
 		this.settingsDialog.isOpened$(false);
+		this.userTestcasesDialog.isOpened$(false);
+		this.deletedUserDialog.isOpened$(false);
 	}
 
 	// ===================================================
@@ -479,7 +513,36 @@ class ViewModel {
 		}
 		location.href = '/login/github/start';
 	}
-	
+
+	// ===================================================
+	// deleted user dialog
+	// ===================================================
+
+	deletedUserDialog = new DeletedUserDialogViewModel(this)
+
+	/** Deletes the user from the app and logs them out */
+	deleteUser() {
+		fetch('/delete/u', {
+			method: 'DELETE',
+			credentials: "same-origin"
+		}).then((response) => {
+			response.text().then(text => {
+				this.deletedUserDialog.deletedUser$(this.githubUserName$())
+				this.deletedUserDialog.newAnonymousUser$(text)
+
+				this.logOut();
+			})
+		}).catch(ex => {
+			console.error(ex);
+			alert("Oops, something went wrong... Try deleting your account again.");
+		});
+	}
+
+	// ===================================================
+	// user testcases dialog
+	// ===================================================
+
+	userTestcasesDialog = new UserTestcasesDialogViewModel(this)
 
 	// ===================================================
 	// output frame settings
@@ -717,7 +780,7 @@ class ViewModel {
 				
 				// update the data
 				this.currentTestId$(o.id);
-				this.updateURL();
+				this.updateURLForTest();
 
 				// refresh the iframe and view
 				this.run();
@@ -735,6 +798,18 @@ class ViewModel {
 
 	/** Whether the test model is still waiting on some data from the server */
 	isLoading$ = m.prop(false)
+
+	/** Redirects the page to have the specified user's testcases in an dialog open */
+	redirectToUsersTests(author: string) {
+		this.userTestcasesDialog.previousUrl$(location.hash)
+		history.replaceState(getTestData(), `Tests by ${this.githubUserName$()}`, `/#/u/${this.githubUserName$()}`)
+	}
+
+	/** Closes the testcases dialog and redirects back to the previous page */
+	redirectBackFromUsersTests() {
+		history.replaceState(getTestData(), document.title, this.userTestcasesDialog.previousUrl$());
+		updatePageTitle()
+	}
 
 	/** Resets the test model based on new data */
 	openFromJSON(newData?: TestDataModel) {
@@ -759,12 +834,12 @@ class ViewModel {
 				}
 			}
 		}
-		this.updateURL();
+		this.updateURLForTest();
 		this.run();
 	}
 
 	/** Updates url and page title on test id change */
-	updateURL() {
+	updateURLForTest() {
 		updatePageTitle();
 		location.hash = '#/' + vm.currentTestId$();
 		history.replaceState(getTestData(), document.title, location.href); // TODO: clone
@@ -936,6 +1011,11 @@ class SettingsDialogViewModel {
 		this.vm.logIn();
 	}
 
+	/** Ask the viewmodel to delete this user */
+	deleteUser() {
+		this.vm.deleteUser();
+	}
+
 	/** Open the welcome dialog */
 	openWelcomeDialog() {
 		this.vm.welcomeDialog.isOpened$(true);
@@ -944,6 +1024,55 @@ class SettingsDialogViewModel {
 	/** Open the search dialog */
 	openSearchDialog() {
 		this.vm.searchDialog.isOpened$(true);
+	}
+}
+
+class DeletedUserDialogViewModel {
+	/** The attached view model */
+	vm = null as ViewModel;
+	constructor(vm: ViewModel) {
+		this.vm = vm;
+	}
+
+	/** Whether the dialog is opened or closed */
+	isOpened$ = m.prop(false)
+
+	/** The user that ws deleted */
+	deletedUser$ = m.prop("")
+
+	/** The username of the anonymous user name assigned to the tests from the deleted user */
+	newAnonymousUser$ = m.prop("")
+}
+
+class UserTestcasesDialogViewModel {
+
+	/** The attached view model */
+	vm = null as ViewModel;
+	constructor(vm: ViewModel) {
+		this.vm = vm;
+		this.author$(vm.githubUserName$())
+		this.previousUrl$("/#/new")
+	}
+
+	/** Whether the dialog is opened or closed */
+	isOpened$ = m.prop(false)
+
+	/** The author to display the tests of */
+	author$ = m.prop("")
+
+	/** The tests created by this author */
+	tests$ = m.prop([])
+
+	/** The previous URL that was open to return to */
+	previousUrl$ = m.prop("")
+
+	updateAuthorOfTestcases(author: string) {
+		this.author$(author)
+		this.vm.fetchTestcasesByUser(author)
+	}
+
+	deleteTest(id: string) {
+		this.vm.deleteTestcase(this.author$(), id)
 	}
 }
 

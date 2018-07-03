@@ -105,7 +105,6 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 					case "html": {
 
 						this.editor.getModel().onDidChangeContent(e => {
-							
 							let change = e.changes[0]; // there seems to be only one change at a given time for HTML panel editing
 							
 							var oldLineCount = 1 + change.range.endLineNumber - change.range.startLineNumber;
@@ -790,6 +789,39 @@ var DOMViewPane = new Tag<{},DOMViewPaneState>().with({
 	</dom-view-pane>
 );
 
+var UserTestcasesDialog = new Tag().with({	
+	deleteTest(id:string) {
+		vm.userTestcasesDialog.deleteTest(id)
+	},
+
+	close() {
+		var form = vm.userTestcasesDialog;
+		form.isOpened$(false);
+		vm.redirectBackFromUsersTests()
+	}
+}).from((a, c, self) => 
+	<dialog as="user-testcases-dialog" autofocus hidden={!vm.userTestcasesDialog.isOpened$()}>
+		<section tabindex="-1">
+			<h3>Tests created by {vm.userTestcasesDialog.author$()}</h3>
+			<form action="POST" onsubmit={e => { e.preventDefault(); self.close(); }}>
+				<table>
+					{vm.userTestcasesDialog.tests$().map((val) =>
+						<tr>
+							<td style="padding-right:20px">
+							<a href={`/#/${val.id}`}>{`${val.id}: ${val.title} (${new Date(val.creationDate)})`}</a>
+							</td>
+							<td><button onclick={() => self.deleteTest(val.id)}>Delete</button></td>
+						</tr>
+					)}
+				</table>
+				<footer style="margin-top: 20px">
+					<input type="submit" value="Close" />
+				</footer>
+			</form>
+		</section>
+	</dialog>
+)
+
 var SelectorGenerationDialog = new Tag().with({
 	generateReplacement() {
 		var form = vm.selectorGenerationDialog;
@@ -870,10 +902,43 @@ var SelectorGenerationDialog = new Tag().with({
 	</dialog>
 )
 
+var DeletedUserDialog = new Tag().with({
+	close() {
+		var form = vm.deletedUserDialog;
+		form.isOpened$(false);
+	}
+}).from((a,s,self) => 
+	<dialog as="deleted-user-dialog" autofocus hidden={!vm.deletedUserDialog.isOpened$()}>
+
+		<section tabindex="-1">
+			<h1>Successfully removed your account!</h1>
+			<form action="POST" onsubmit={e => { e.preventDefault(); self.close(); }}>
+				<p>Successfully deleted your account: <b>{vm.deletedUserDialog.deletedUser$()}</b> from wptest.center. 
+				All tests created by you no longer have your name associated with them, but instead are now associated with randomly assigned anonymous name: <b>{vm.deletedUserDialog.newAnonymousUser$()}</b>.</p>
+				<p>To view and delete your tests please go to <a href={`/#/u/${vm.deletedUserDialog.newAnonymousUser$()}`}>wptest.center/#/u/{vm.deletedUserDialog.newAnonymousUser$()}</a> to see a list of tests that you can delete. <b>Please save this link for future reference to delete your tests.</b></p>
+				<footer style="margin-top: 20px">
+					<input type="submit" value=" Got it! " />
+				</footer>
+			</form>
+		</section>
+
+	</dialog>
+)
+
 var SettingsDialog = new Tag().with({
 	close() {
 		var form = vm.settingsDialog;
 		form.isOpened$(false);
+	},
+
+	deleteUser() {
+		let confirmed = confirm("Are you sure you want to delete your account?")
+
+		if (confirmed) {
+			vm.settingsDialog.deleteUser()
+			vm.deletedUserDialog.isOpened$(true)
+			vm.settingsDialog.isOpened$(false)
+		}
 	}
 }).from((a,s,self) => 
 	<dialog as="settings-dialog" autofocus hidden={!vm.settingsDialog.isOpened$()}>
@@ -895,6 +960,12 @@ var SettingsDialog = new Tag().with({
 				</label>			
 				<hr />
 				<label style="display: block; margin-bottom: 10px">
+					<button hidden={!vm.githubIsConnected$()} onclick={e => vm.redirectToUsersTests(vm.githubUserName$())}>
+						<span class="icon">📁</span>
+						See testcases made by you, {vm.githubUserName$()}.
+					</button>
+				</label>
+				<label style="display: block; margin-bottom: 10px">
 					<button hidden={vm.githubIsConnected$()} onclick={e => vm.settingsDialog.logIn()}>
 						<span class="icon">🔒</span>
 						Log In using your Github account
@@ -902,6 +973,12 @@ var SettingsDialog = new Tag().with({
 					<button hidden={!vm.githubIsConnected$()} onclick={e => vm.settingsDialog.logOut()}>
 						<span class="icon">🔒</span>
 						Log Out of your Github account ({vm.githubUserName$()})
+					</button>
+				</label>
+				<label style="display: block; margin-bottom: 10px">
+					<button hidden={!vm.githubIsConnected$()} onclick={e => self.deleteUser()}>
+						<span class="icon">⛔️</span>
+						Remove your account ({vm.githubUserName$()}) from wptest
 					</button>
 				</label>
 				<label style="display: block; margin-bottom: 10px">
@@ -997,15 +1074,23 @@ var WelcomeDialog = new Tag().with({
 )
 
 var TestEditorView = new Tag <{id:string}> ().from(a => {
+
+	// check if url pointing to an user instead of test
+	if(location.hash.substr(2, 2) === 'u/') {
+		vm.closeAllDialogs();
+		vm.userTestcasesDialog.isOpened$(true);
+		vm.userTestcasesDialog.updateAuthorOfTestcases(location.hash.substr(4))
+	}
+
 	// if the page moved to a new id 
 	// then we need to reset all data and download the new test
-	if(a.id != vm.currentTestId$() && (a.id == location.hash.substr(2) || (a.id.substr(0, 5) == 'json:' && location.hash.substr(0,7) == '#/json:'))) {
+	else if(a.id != vm.currentTestId$() && (a.id == location.hash.substr(2) || (a.id.substr(0, 5) == 'json:' && location.hash.substr(0,7) == '#/json:'))) {
 		vm.currentTestId$(a.id); vm.closeAllDialogs();
 		var id = a.id; 
 		if(id == 'local:save') {
 			id = sessionStorage.getItem(id) || (localStorage.getItem('local:save') ? 'local:save' : 'new');
 			vm.currentTestId$(id);
-			vm.updateURL();
+			vm.updateURLForTest();
 		}
 		if(id.indexOf('local:') == 0) {
 
@@ -1060,8 +1145,10 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 				<ToolsPane />
 			</bottom-row>
 
+			<UserTestcasesDialog />
 			<SelectorGenerationDialog />
 			<SettingsDialog />
+			<DeletedUserDialog />
 			<SearchDialog />
 			<WelcomeDialog />
 
@@ -1069,7 +1156,7 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 	).children;
 })
 
-m.route(document.body, '/new', { '/:id...': TestEditorView() })
+m.route(document.body, '/new', { '/:id...': TestEditorView(), '/u/:author...' : TestEditorView() })
 
 //----------------------------------------------------------------
 setInterval(updatePageTitle, 3000);

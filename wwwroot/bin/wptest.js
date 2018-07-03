@@ -757,6 +757,14 @@ var ViewModel = /** @class */ (function () {
         // ===================================================
         this.settingsDialog = new SettingsDialogViewModel(this);
         // ===================================================
+        // deleted user dialog
+        // ===================================================
+        this.deletedUserDialog = new DeletedUserDialogViewModel(this);
+        // ===================================================
+        // user testcases dialog
+        // ===================================================
+        this.userTestcasesDialog = new UserTestcasesDialogViewModel(this);
+        // ===================================================
         // output frame settings
         // ===================================================
         /** Whether the mouse is being tracked to select a new element */
@@ -838,6 +846,37 @@ var ViewModel = /** @class */ (function () {
         // invalidate the current rendering (if necessary)
         vm.lastWatchUpdateTime$(performance.now());
         m.redraw();
+    };
+    /** Fetches the testcases for the given user and  */
+    ViewModel.prototype.fetchTestcasesByUser = function (author) {
+        var _this = this;
+        fetch("/u/" + author, {
+            method: 'GET',
+            credentials: "same-origin"
+        }).then(function (response) {
+            response.text().then(function (text) {
+                _this.userTestcasesDialog.tests$(JSON.parse(text));
+            });
+        }).catch(function (ex) {
+            console.error(ex);
+            console.log("Oops, something went wrong... Can't seem to get the tests created by " + author + ".");
+        });
+    };
+    /** Deletes the test by the gievn id and author */
+    ViewModel.prototype.deleteTestcase = function (author, id) {
+        var _this = this;
+        fetch("/delete/t/" + id + "/" + author, {
+            method: 'DELETE',
+            credentials: "same-origin"
+        }).then(function (response) {
+            response.text().then(function (text) {
+                alert(text);
+                _this.fetchTestcasesByUser(author);
+            });
+        }).catch(function (ex) {
+            console.error(ex);
+            alert("Oops, something went wrong... Try deleting the test again.");
+        });
     };
     /** Adds an expression to the list of watches (eventually bootstrapped with a value) */
     ViewModel.prototype.addPinnedWatch = function (expr, value) {
@@ -946,6 +985,8 @@ var ViewModel = /** @class */ (function () {
         this.searchDialog.isOpened$(false);
         this.welcomeDialog.isOpened$(false);
         this.settingsDialog.isOpened$(false);
+        this.userTestcasesDialog.isOpened$(false);
+        this.deletedUserDialog.isOpened$(false);
     };
     /** Removes the user cookie */
     ViewModel.prototype.logOut = function () {
@@ -959,6 +1000,23 @@ var ViewModel = /** @class */ (function () {
             sessionStorage.setItem('local:save', currentId);
         }
         location.href = '/login/github/start';
+    };
+    /** Deletes the user from the app and logs them out */
+    ViewModel.prototype.deleteUser = function () {
+        var _this = this;
+        fetch('/delete/u', {
+            method: 'DELETE',
+            credentials: "same-origin"
+        }).then(function (response) {
+            response.text().then(function (text) {
+                _this.deletedUserDialog.deletedUser$(_this.githubUserName$());
+                _this.deletedUserDialog.newAnonymousUser$(text);
+                _this.logOut();
+            });
+        }).catch(function (ex) {
+            console.error(ex);
+            alert("Oops, something went wrong... Try deleting your account again.");
+        });
     };
     /** Refreshes the output frame with the latest source code */
     ViewModel.prototype.run = function () {
@@ -1182,7 +1240,7 @@ var ViewModel = /** @class */ (function () {
             suspendRedrawsOn(function (redraw) {
                 // update the data
                 _this.currentTestId$(o.id);
-                _this.updateURL();
+                _this.updateURLForTest();
                 // refresh the iframe and view
                 _this.run();
                 // remove suspender
@@ -1192,6 +1250,16 @@ var ViewModel = /** @class */ (function () {
             console.error(ex);
             alert("Oops, something went wrong... Try again or save locally by pressing ALT when you click on the save button.");
         });
+    };
+    /** Redirects the page to have the specified user's testcases in an dialog open */
+    ViewModel.prototype.redirectToUsersTests = function (author) {
+        this.userTestcasesDialog.previousUrl$(location.hash);
+        history.replaceState(getTestData(), "Tests by " + this.githubUserName$(), "/#/u/" + this.githubUserName$());
+    };
+    /** Closes the testcases dialog and redirects back to the previous page */
+    ViewModel.prototype.redirectBackFromUsersTests = function () {
+        history.replaceState(getTestData(), document.title, this.userTestcasesDialog.previousUrl$());
+        updatePageTitle();
     };
     /** Resets the test model based on new data */
     ViewModel.prototype.openFromJSON = function (newData) {
@@ -1216,11 +1284,11 @@ var ViewModel = /** @class */ (function () {
                 }
             }
         }
-        this.updateURL();
+        this.updateURLForTest();
         this.run();
     };
     /** Updates url and page title on test id change */
-    ViewModel.prototype.updateURL = function () {
+    ViewModel.prototype.updateURLForTest = function () {
         updatePageTitle();
         location.hash = '#/' + vm.currentTestId$();
         history.replaceState(getTestData(), document.title, location.href); // TODO: clone
@@ -1357,6 +1425,10 @@ var SettingsDialogViewModel = /** @class */ (function () {
     SettingsDialogViewModel.prototype.logIn = function () {
         this.vm.logIn();
     };
+    /** Ask the viewmodel to delete this user */
+    SettingsDialogViewModel.prototype.deleteUser = function () {
+        this.vm.deleteUser();
+    };
     /** Open the welcome dialog */
     SettingsDialogViewModel.prototype.openWelcomeDialog = function () {
         this.vm.welcomeDialog.isOpened$(true);
@@ -1366,6 +1438,45 @@ var SettingsDialogViewModel = /** @class */ (function () {
         this.vm.searchDialog.isOpened$(true);
     };
     return SettingsDialogViewModel;
+}());
+var DeletedUserDialogViewModel = /** @class */ (function () {
+    function DeletedUserDialogViewModel(vm) {
+        /** The attached view model */
+        this.vm = null;
+        /** Whether the dialog is opened or closed */
+        this.isOpened$ = m.prop(false);
+        /** The user that ws deleted */
+        this.deletedUser$ = m.prop("");
+        /** The username of the anonymous user name assigned to the tests from the deleted user */
+        this.newAnonymousUser$ = m.prop("");
+        this.vm = vm;
+    }
+    return DeletedUserDialogViewModel;
+}());
+var UserTestcasesDialogViewModel = /** @class */ (function () {
+    function UserTestcasesDialogViewModel(vm) {
+        /** The attached view model */
+        this.vm = null;
+        /** Whether the dialog is opened or closed */
+        this.isOpened$ = m.prop(false);
+        /** The author to display the tests of */
+        this.author$ = m.prop("");
+        /** The tests created by this author */
+        this.tests$ = m.prop([]);
+        /** The previous URL that was open to return to */
+        this.previousUrl$ = m.prop("");
+        this.vm = vm;
+        this.author$(vm.githubUserName$());
+        this.previousUrl$("/#/new");
+    }
+    UserTestcasesDialogViewModel.prototype.updateAuthorOfTestcases = function (author) {
+        this.author$(author);
+        this.vm.fetchTestcasesByUser(author);
+    };
+    UserTestcasesDialogViewModel.prototype.deleteTest = function (id) {
+        this.vm.deleteTestcase(this.author$(), id);
+    };
+    return UserTestcasesDialogViewModel;
 }());
 var WelcomeDialogViewModel = /** @class */ (function () {
     function WelcomeDialogViewModel(vm) {
@@ -2097,6 +2208,32 @@ var DOMViewPane = new Tag().with({
 }).from(function (a, c, self) {
     return React.createElement("dom-view-pane", null, self.getOutputTree());
 });
+var UserTestcasesDialog = new Tag().with({
+    deleteTest: function (id) {
+        vm.userTestcasesDialog.deleteTest(id);
+    },
+    close: function () {
+        var form = vm.userTestcasesDialog;
+        form.isOpened$(false);
+        vm.redirectBackFromUsersTests();
+    }
+}).from(function (a, c, self) {
+    return React.createElement("dialog", { as: "user-testcases-dialog", autofocus: true, hidden: !vm.userTestcasesDialog.isOpened$() },
+        React.createElement("section", { tabindex: "-1" },
+            React.createElement("h3", null,
+                "Tests created by ",
+                vm.userTestcasesDialog.author$()),
+            React.createElement("form", { action: "POST", onsubmit: function (e) { e.preventDefault(); self.close(); } },
+                React.createElement("table", null, vm.userTestcasesDialog.tests$().map(function (val) {
+                    return React.createElement("tr", null,
+                        React.createElement("td", { style: "padding-right:20px" },
+                            React.createElement("a", { href: "/#/" + val.id }, val.id + ": " + val.title + " (" + new Date(val.creationDate) + ")")),
+                        React.createElement("td", null,
+                            React.createElement("button", { onclick: function () { return self.deleteTest(val.id); } }, "Delete")));
+                })),
+                React.createElement("footer", { style: "margin-top: 20px" },
+                    React.createElement("input", { type: "submit", value: "Close" })))));
+});
 var SelectorGenerationDialog = new Tag().with({
     generateReplacement: function () {
         var form = vm.selectorGenerationDialog;
@@ -2167,10 +2304,44 @@ var SelectorGenerationDialog = new Tag().with({
                     "\u00A0",
                     React.createElement("input", { type: "button", value: "Cancel", onclick: function (e) { return vm.selectorGenerationDialog.isOpened$(false); } })))));
 });
+var DeletedUserDialog = new Tag().with({
+    close: function () {
+        var form = vm.deletedUserDialog;
+        form.isOpened$(false);
+    }
+}).from(function (a, s, self) {
+    return React.createElement("dialog", { as: "deleted-user-dialog", autofocus: true, hidden: !vm.deletedUserDialog.isOpened$() },
+        React.createElement("section", { tabindex: "-1" },
+            React.createElement("h1", null, "Successfully removed your account!"),
+            React.createElement("form", { action: "POST", onsubmit: function (e) { e.preventDefault(); self.close(); } },
+                React.createElement("p", null,
+                    "Successfully deleted your account: ",
+                    React.createElement("b", null, vm.deletedUserDialog.deletedUser$()),
+                    " from wptest.center. All tests created by you no longer have your name associated with them, but instead are now associated with randomly assigned anonymous name: ",
+                    React.createElement("b", null, vm.deletedUserDialog.newAnonymousUser$()),
+                    "."),
+                React.createElement("p", null,
+                    "To view and delete your tests please go to ",
+                    React.createElement("a", { href: "/#/u/" + vm.deletedUserDialog.newAnonymousUser$() },
+                        "wptest.center/#/u/",
+                        vm.deletedUserDialog.newAnonymousUser$()),
+                    " to see a list of tests that you can delete. ",
+                    React.createElement("b", null, "Please save this link for future reference to delete your tests.")),
+                React.createElement("footer", { style: "margin-top: 20px" },
+                    React.createElement("input", { type: "submit", value: " Got it! " })))));
+});
 var SettingsDialog = new Tag().with({
     close: function () {
         var form = vm.settingsDialog;
         form.isOpened$(false);
+    },
+    deleteUser: function () {
+        var confirmed = confirm("Are you sure you want to delete your account?");
+        if (confirmed) {
+            vm.settingsDialog.deleteUser();
+            vm.deletedUserDialog.isOpened$(true);
+            vm.settingsDialog.isOpened$(false);
+        }
     }
 }).from(function (a, s, self) {
     return React.createElement("dialog", { as: "settings-dialog", autofocus: true, hidden: !vm.settingsDialog.isOpened$() },
@@ -2187,6 +2358,12 @@ var SettingsDialog = new Tag().with({
                         "Search existing test cases")),
                 React.createElement("hr", null),
                 React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    React.createElement("button", { hidden: !vm.githubIsConnected$(), onclick: function (e) { return vm.redirectToUsersTests(vm.githubUserName$()); } },
+                        React.createElement("span", { class: "icon" }, "\uD83D\uDCC1"),
+                        "See testcases made by you, ",
+                        vm.githubUserName$(),
+                        ".")),
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
                     React.createElement("button", { hidden: vm.githubIsConnected$(), onclick: function (e) { return vm.settingsDialog.logIn(); } },
                         React.createElement("span", { class: "icon" }, "\uD83D\uDD12"),
                         "Log In using your Github account"),
@@ -2195,6 +2372,12 @@ var SettingsDialog = new Tag().with({
                         "Log Out of your Github account (",
                         vm.githubUserName$(),
                         ")")),
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    React.createElement("button", { hidden: !vm.githubIsConnected$(), onclick: function (e) { return self.deleteUser(); } },
+                        React.createElement("span", { class: "icon" }, "\u26D4\uFE0F"),
+                        "Remove your account (",
+                        vm.githubUserName$(),
+                        ") from wptest")),
                 React.createElement("label", { style: "display: block; margin-bottom: 10px" },
                     React.createElement("button", { hidden: !vm.settingsDialog.useMonaco$(), onclick: function (e) { return vm.settingsDialog.useMonaco$(false); }, style: "display: block" },
                         React.createElement("span", { class: "icon" }, "\u2699"),
@@ -2256,16 +2439,22 @@ var WelcomeDialog = new Tag().with({
                     React.createElement("input", { type: "submit", value: " Got it! " })))));
 });
 var TestEditorView = new Tag().from(function (a) {
+    // check if url pointing to an user instead of test
+    if (location.hash.substr(2, 2) === 'u/') {
+        vm.closeAllDialogs();
+        vm.userTestcasesDialog.isOpened$(true);
+        vm.userTestcasesDialog.updateAuthorOfTestcases(location.hash.substr(4));
+    }
     // if the page moved to a new id 
     // then we need to reset all data and download the new test
-    if (a.id != vm.currentTestId$() && (a.id == location.hash.substr(2) || (a.id.substr(0, 5) == 'json:' && location.hash.substr(0, 7) == '#/json:'))) {
+    else if (a.id != vm.currentTestId$() && (a.id == location.hash.substr(2) || (a.id.substr(0, 5) == 'json:' && location.hash.substr(0, 7) == '#/json:'))) {
         vm.currentTestId$(a.id);
         vm.closeAllDialogs();
         var id = a.id;
         if (id == 'local:save') {
             id = sessionStorage.getItem(id) || (localStorage.getItem('local:save') ? 'local:save' : 'new');
             vm.currentTestId$(id);
-            vm.updateURL();
+            vm.updateURLForTest();
         }
         if (id.indexOf('local:') == 0) {
             try {
@@ -2310,12 +2499,14 @@ var TestEditorView = new Tag().from(function (a) {
             React.createElement(OutputPane, null),
             React.createElement(DOMViewPane, null),
             React.createElement(ToolsPane, null)),
+        React.createElement(UserTestcasesDialog, null),
         React.createElement(SelectorGenerationDialog, null),
         React.createElement(SettingsDialog, null),
+        React.createElement(DeletedUserDialog, null),
         React.createElement(SearchDialog, null),
         React.createElement(WelcomeDialog, null))).children;
 });
-m.route(document.body, '/new', { '/:id...': TestEditorView() });
+m.route(document.body, '/new', { '/:id...': TestEditorView(), '/u/:author...': TestEditorView() });
 //----------------------------------------------------------------
 setInterval(updatePageTitle, 3000);
 function updatePageTitle() {

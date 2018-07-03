@@ -156,7 +156,7 @@ app.get('/package/version', (req, res) => { res.send(package.version); });
 app.get('/package/description', (req, res) => { res.send(package.description); });
 
 // setup test short urls
-app.get("/:testId([a-z0-9]*[0-9])", (req, res) => { res.redirect("/#/" + req.params.testId); });
+app.get("/:testId(^(?!anonymous)[a-z0-9]*[0-9])", (req, res) => { res.redirect("/#/" + req.params.testId); });
 
 // setup test data urls
 app.get("/uploads/:testId([a-z0-9]*[0-9]).json", (req, res) => {
@@ -197,7 +197,7 @@ app.get('/u/:username/', (req, res) => {
 			console.error(err);
 			res.status(404).send("No result found");
 		} else {
-			res.status(200).send(results.map(r => `<a href="/#/${r.id}">${r.id}: ${r.title} (${new Date(r.creationDate)})</a><br/>`).join(''))
+			res.status(200).send(JSON.stringify(results))
 		}
 	})
 })
@@ -293,6 +293,72 @@ app.get('/search', (req, res) => {
 			res.status(200).send("No result found")
 		}
 	})*/
+});
+
+// delete user's information and update their tests under an anonymous account
+app.delete('/delete/u', (req, res) => {
+	let user = getConnectedUser(req);
+	let anonUsername = getRandomAnonymousUsername();
+
+	console.log(`Deleting user: ${user.username} and assigning anon username: ${anonUsername}`);
+	tests.updateMany(
+		{ author: user.username },
+		{ $set: { author: anonUsername } },
+		(err, doc) => {
+			if (err != null) {
+				console.log(err)
+				res.status(500).send("Database error");
+				return
+			}
+			authors.remove({username: user.username}).then(
+				onsuccess => { res.status(200).send(anonUsername); },
+				onerror   => { res.status(500).send("Database error"); }
+			);
+		});
+
+	// ================================================================
+
+	function getRandomAnonymousUsername() {
+		let randomInt = Math.floor(Math.random() * Math.floor(100000));
+		return `anonymous:${randomInt}`
+	}
+});
+
+// delete the specified test, where only the authenticated user can delete their own tests or for anonymous tests with assigned anonymous id number
+app.delete('/delete/t/:testId/:username', (req, res) => {
+	if(!req.params.username.startsWith('anonymous:')) {
+		let user = getConnectedUser(req);
+
+		if(user == null) {
+			console.log(`Forbidden! No one authenticated to delete this test: ${req.params.testId} by ${req.params.username}.`);
+			res.status(403).send("Forbidden! You do not have permissions to delete this test.");
+			return
+		}
+
+		if(req.params.username != user.username) {
+			console.log(`Forbidden! ${req.params.username} does not have permissions to delete this test: ${req.params.testId} by ${user.username}.`);
+			res.status(403).send("Forbidden! You do not have permissions to delete this test.");
+			return
+		}
+
+		tests.remove({id: req.params.testId}).then(
+			onsuccess => { res.status(200).send(`Deleted test: ${req.params.testId} by ${req.params.username}`); },
+			onerror   => { res.status(500).send("Database error"); }
+		);
+	} else {
+		tests.find({ author: req.params.username,  id: req.params.testId }, asTestWihtoutTags).toArray(function (err, results) {
+			if(err || results.length == 0) {
+				console.log(`Forbidden! ${req.params.username} does not have permissions to delete this test: ${req.params.testId}.`);
+				res.status(403).send("Forbidden! You do not have permissions to delete this test.");
+				return
+			}
+
+			tests.remove({id: req.params.testId}).then(
+				onsuccess => { res.status(200).send(`Deleted test: ${req.params.testId} by ${req.params.username}`); },
+				onerror   => { res.status(500).send("Database error"); }
+			);
+		})
+	}
 });
 
 // enable support for post requests
