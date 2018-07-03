@@ -51,8 +51,8 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 					value: this.value,
 					fontSize: 13,
 					lineNumbers: "off",
-					lineDecorationsWidth: 0,
 					lineNumbersMinChars: 0,
+					folding: false,
 					minimap: {
 						enabled: false
 					},
@@ -304,9 +304,9 @@ var MonacoTextEditor = new Tag <{ id:string, value$:Prop<string>, language:strin
 		<TextArea id={a.id+'Textbox'} value$={a.value$} hidden={!!s.editor} onkeydown={enableTabInTextarea} />
 		<monaco-text-editor-placeholder hidden={a.value$().length>0}>{(
 			{
-				'javascript': ' // JAVASCRIPT CODE',
-				'html': ' <!-- HTML MARKUP -->',
-				'css': ' /* CSS STYLES */'
+				'javascript': '// JAVASCRIPT CODE',
+				'html': '<!-- HTML MARKUP -->',
+				'css': '/* CSS STYLES */'
 			}[a.language] || '')
 		}</monaco-text-editor-placeholder>
 	</monaco-text-editor>

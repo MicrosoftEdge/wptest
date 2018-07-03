@@ -1464,8 +1464,8 @@ var MonacoTextEditor = new Tag().with({
                 value: _this.value,
                 fontSize: 13,
                 lineNumbers: "off",
-                lineDecorationsWidth: 0,
                 lineNumbersMinChars: 0,
+                folding: false,
                 minimap: {
                     enabled: false
                 },
@@ -1688,9 +1688,9 @@ var MonacoTextEditor = new Tag().with({
         React.createElement("monaco-text-editor-area", { id: a.id + 'Area' }),
         React.createElement(TextArea, { id: a.id + 'Textbox', "value$": a.value$, hidden: !!s.editor, onkeydown: enableTabInTextarea }),
         React.createElement("monaco-text-editor-placeholder", { hidden: a.value$().length > 0 }, ({
-            'javascript': ' // JAVASCRIPT CODE',
-            'html': ' <!-- HTML MARKUP -->',
-            'css': ' /* CSS STYLES */'
+            'javascript': '// JAVASCRIPT CODE',
+            'html': '<!-- HTML MARKUP -->',
+            'css': '/* CSS STYLES */'
         }[a.language] || '')));
 });
 function enableTabInTextarea(e) {
