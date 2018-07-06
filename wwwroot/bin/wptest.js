@@ -2378,6 +2378,7 @@ var SettingsDialog = new Tag().with({
                         "Remove your account (",
                         vm.githubUserName$(),
                         ") from wptest")),
+                React.createElement("hr", null),
                 React.createElement("label", { style: "display: block; margin-bottom: 10px" },
                     React.createElement("button", { hidden: !vm.settingsDialog.useMonaco$(), onclick: function (e) { return vm.settingsDialog.useMonaco$(false); }, style: "display: block" },
                         React.createElement("span", { class: "icon" }, "\u2699"),

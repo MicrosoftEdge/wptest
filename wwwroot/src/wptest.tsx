@@ -981,6 +981,7 @@ var SettingsDialog = new Tag().with({
 						Remove your account ({vm.githubUserName$()}) from wptest
 					</button>
 				</label>
+				<hr />
 				<label style="display: block; margin-bottom: 10px">
 					<button hidden={!vm.settingsDialog.useMonaco$()} onclick={e => vm.settingsDialog.useMonaco$(false)} style="display: block">
 						<span class="icon">⚙</span>
