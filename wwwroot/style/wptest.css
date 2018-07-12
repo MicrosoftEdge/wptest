@@ -208,7 +208,7 @@ tools-pane-watches {
 	.watch-list > li > input[type="text"] { max-width: 200px; flex: 0 1 200px; padding: 0; -webkit-appearance: none; appearance: none; background: transparent; border: none; }
 	.watch-list > li > output { flex: 1 1 0px; padding: 0; padding-left: 10px; -webkit-appearance: none; appearance: none; background: transparent; border: none; }
 	.watch-list > li > output[assert=pass] { color: green; background: transparent; }
-	.watch-list > li > output[assert=fail] { color: yellow; background: red; }
+	.watch-list > li > output[assert=fail] { color: yellow; background: crimson; }
 	.watch-list > li > input[type="text"][readonly], .watch-list > li > output { color: gray; }
 	.watch-list > li > button.edit { position: absolute; right:20px; background: transparent; border: none; opacity: 0; }
 	.watch-list > li:hover > button.edit { opacity: 1; }
@@ -305,7 +305,7 @@ input[of="tools-pane-console"]:focus {
 }
 output-pane {
 	display: flex;
-	flex-direction: row;
+	flex-direction: column;
 }
 
 /* [of="output-pane"] { */
@@ -333,9 +333,9 @@ output-pane {
 	}
 
 	output-pane-cover {
-		top: 0; left: 0;
-		width: calc(100% - 40px); 
-		height: 100%; 
+		top: 40px; left: 0;
+		width: 100%; 
+		height: calc(100% - 40px); 
 		position: absolute; 
 		overflow: hidden;
 		background: transparent; 
@@ -352,6 +352,8 @@ output-pane {
 	}
 
 	output-pane-toolbar {
+		display: flex;
+		flex-direction: row;
 		flex: 0 0 40px;
 	}
 
@@ -359,14 +361,28 @@ output-pane {
 
 dom-view-pane {
 	display: flex;
+	flex-direction: column;
+	flex: 1 1 0px;
+	height: 100%; /* Edge hack */
+	max-height: 50vh;
+	max-width: 25vw;
+}
+
+dom-view-pane-toolbar {
+	display: flex;
+	flex-direction: row;
+	flex: 0 0 40px;
+}
+
+dom-view-tree {
+	display: flex;
 	overflow: auto;
 	overflow-y: hidden;
-	flex-direction: row;
-	height: 100%; /* Edge hack */
+	width: 100%;
 	-ms-overflow-style: -ms-autohiding-scrollbar;
 }
 
-dom-view-pane:hover {
+dom-view-tree:hover {
 	overflow: auto;
 }
 
@@ -416,6 +432,13 @@ code[is-selected] {
 	background-color: cyan;
 }
 
+[role=toolbar] > h3 {
+	font: 500 13px Arial;
+	margin-left: 1em;
+	margin-right: 1em;
+	cursor: default;
+}
+
 [role=toolbar] > button {
 	background: transparent;
 	border: none;
@@ -425,6 +448,7 @@ code[is-selected] {
 	transition: color 0.2s;
 	white-space: nowrap; /* edgehack */
 	padding: calc(20px - 0.6em) 10px; /* chromehack */
+	font-family: "Segoe UI Symbol", "Segoe UI", sans-serif;
 }
 
 [role=toolbar] > button[aria-expanded=false] {
@@ -459,6 +483,9 @@ code[is-selected] {
 [role=toolbar] > hr ~ input:focus {
 	color: black;
 }
+
+bottom-row [role="toolbar"] > button { opacity: 0.75; transition: opacity 0.3s; }
+bottom-row [role="toolbar"] > button:hover { opacity: 1.00; }
 
 /* [of="monaco-text-editor"] { */
 

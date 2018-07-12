@@ -360,7 +360,9 @@ var ToolsPaneWatches = new Tag <{ id:string, activePane$:Prop<string> }> ().with
 			<li>
 				<input type="checkbox" checked title="Uncheck to delete this watch" onchange={e=>{if(!e.target.checked) { vm.removePinnedWatch(expr); e.target.checked=true; }}} />
 				<Input type="text" title={expr} value$={m.prop2(x => expr, v => { if(a[i] != v) { a[i]=v; requestAnimationFrame(then=>vm.refreshWatches()); } })} />
-				<output assert={vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr])===vm.watchValues[expr] ? 'pass':'fail':'none'}>{`${vm.watchDisplayValues[expr]||''}`}</output>
+				<output assert={vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr])===vm.watchValues[expr] ? 'pass':'fail':'none'}>
+					{`${vm.watchDisplayValues[expr]||''}${vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr])!==vm.watchValues[expr] ? `, expected ${vm.watchExpectedValues[expr]}` : '' : ''}`}
+				</output>
 				<button class="edit" title="Edit the expected value" onclick={e=>vm.setupExpectedValueFor(expr)}>edit</button>
 			</li>
 		)}
@@ -611,15 +613,15 @@ var ToolsPane = new Tag().from(a =>
 
 var OutputPane = new Tag().from(a =>
 	<output-pane>
+		<output-pane-toolbar role="toolbar">
+			<h3> Rendered Result </h3>
+			<button onclick={e=>vm.isPicking$(!vm.isPicking$())}>🔍 select element </button>
+		</output-pane-toolbar>
+
 		<iframe id="outputPane" src="about:blank" border="0" frameborder="0" is-active={!vm.isPicking$()}></iframe>
 		<OutputPaneCover id="outputPaneCover" />
-		<output-pane-toolbar role="toolbar">
-			<button onclick={e=>vm.isPicking$(!vm.isPicking$())}>⊳</button>
-			<button onclick={e=>vm.refreshWatches()}>↻</button>
-		</output-pane-toolbar>
 	</output-pane>
 );
-
 interface DOMViewElementState { visible: boolean }
 var DOMViewElement = new Tag<{element: Element, toggleable: boolean}, DOMViewElementState>().with({
 	oncreate(this: DOMViewElementState) {
@@ -785,7 +787,11 @@ var DOMViewPane = new Tag<{},DOMViewPaneState>().with({
 	
 }).from((a, c, self) => 
 	<dom-view-pane>
-		{self.getOutputTree()}
+		<dom-view-pane-toolbar role="toolbar">
+			<h3> DOM Tree </h3>
+			<button onclick={e=>vm.refreshWatches()}>↻ refresh watches</button>
+		</dom-view-pane-toolbar>
+		<dom-view-tree> {self.getOutputTree()} </dom-view-tree>
 	</dom-view-pane>
 );
 

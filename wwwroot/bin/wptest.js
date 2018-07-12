@@ -1861,7 +1861,7 @@ var ToolsPaneWatches = new Tag().with({
                             a[i] = v;
                             requestAnimationFrame(function (then) { return vm.refreshWatches(); });
                         } }) }),
-                    React.createElement("output", { assert: vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr]) === vm.watchValues[expr] ? 'pass' : 'fail' : 'none' }, "" + (vm.watchDisplayValues[expr] || '')),
+                    React.createElement("output", { assert: vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr]) === vm.watchValues[expr] ? 'pass' : 'fail' : 'none' }, "" + (vm.watchDisplayValues[expr] || '') + (vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr]) !== vm.watchValues[expr] ? ", expected " + vm.watchExpectedValues[expr] : '' : '')),
                     React.createElement("button", { class: "edit", title: "Edit the expected value", onclick: function (e) { return vm.setupExpectedValueFor(expr); } }, "edit"));
             })),
         React.createElement("ul", { class: "watch-list" }, vm.autoWatches.map(function (expr) {
@@ -2083,11 +2083,11 @@ var ToolsPane = new Tag().from(function (a) {
 });
 var OutputPane = new Tag().from(function (a) {
     return React.createElement("output-pane", null,
-        React.createElement("iframe", { id: "outputPane", src: "about:blank", border: "0", frameborder: "0", "is-active": !vm.isPicking$() }),
-        React.createElement(OutputPaneCover, { id: "outputPaneCover" }),
         React.createElement("output-pane-toolbar", { role: "toolbar" },
-            React.createElement("button", { onclick: function (e) { return vm.isPicking$(!vm.isPicking$()); } }, "\u22B3"),
-            React.createElement("button", { onclick: function (e) { return vm.refreshWatches(); } }, "\u21BB")));
+            React.createElement("h3", null, " Rendered Result "),
+            React.createElement("button", { onclick: function (e) { return vm.isPicking$(!vm.isPicking$()); } }, "\uD83D\uDD0D select element ")),
+        React.createElement("iframe", { id: "outputPane", src: "about:blank", border: "0", frameborder: "0", "is-active": !vm.isPicking$() }),
+        React.createElement(OutputPaneCover, { id: "outputPaneCover" }));
 });
 var DOMViewElement = new Tag().with({
     oncreate: function () {
@@ -2206,7 +2206,14 @@ var DOMViewPane = new Tag().with({
         return tree;
     }
 }).from(function (a, c, self) {
-    return React.createElement("dom-view-pane", null, self.getOutputTree());
+    return React.createElement("dom-view-pane", null,
+        React.createElement("dom-view-pane-toolbar", { role: "toolbar" },
+            React.createElement("h3", null, " DOM Tree "),
+            React.createElement("button", { onclick: function (e) { return vm.refreshWatches(); } }, "\u21BB refresh watches")),
+        React.createElement("dom-view-tree", null,
+            " ",
+            self.getOutputTree(),
+            " "));
 });
 var UserTestcasesDialog = new Tag().with({
     deleteTest: function (id) {
