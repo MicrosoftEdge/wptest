@@ -606,6 +606,21 @@ var getTestData = function () {
     // return the data
     return tmData;
 };
+/** Script test constants */
+var SCRIPT_TESTS = Object.freeze({
+    STATUS: Object.freeze({
+        PASS: 0,
+        FAIL: 1,
+        TIMEOUT: 2,
+        NOTRUN: 3
+    }),
+    PHASE: Object.freeze({
+        INITIAL: 0,
+        STARTED: 1,
+        HAS_RESULT: 2,
+        COMPLETE: 3
+    })
+});
 /** The data used to represent the current state of the view */
 var ViewModel = /** @class */ (function () {
     function ViewModel() {
@@ -702,6 +717,14 @@ var ViewModel = /** @class */ (function () {
             var ds = Array.from(getComputedStyle(document.documentElement)).sort();
             return ds.map(function (prop) { return "gCS($0)['" + prop + "']"; });
         })());
+        /** Cache of the script test results */
+        this.scriptTestResults$ = m.prop([]);
+        /** Determines whether the script test results should be visible */
+        this.isScriptTestsVisible$ = m.prop(true);
+        /** Metadata of all script test results */
+        this.numberOfScriptTests$ = m.prop(0);
+        this.numberOfSuccessfulScriptTests$ = m.prop(0);
+        this.numberOfFailedScriptTests$ = m.prop(0);
         /** Cache of the values of the watches (as js object) */
         this.watchValues = Object.create(null);
         /** Cache of the values of the watches (as string) */
@@ -786,6 +809,10 @@ var ViewModel = /** @class */ (function () {
     ViewModel.prototype.refreshDOMViewer = function () {
         this.domViewerHTMLText$(getOutputPaneElement().outerHTML);
         this.lastDOMUpdateTime$(performance.now());
+    };
+    ViewModel.prototype.setChangeInScriptTestVisibility = function (visible) {
+        this.isScriptTestsVisible$(visible);
+        this.lastWatchUpdateTime$(performance.now());
     };
     ViewModel.prototype.setupExpectedValueFor = function (expr) {
         // get the current expected value if any
@@ -1108,7 +1135,7 @@ var ViewModel = /** @class */ (function () {
         };
         // write the document content
         d.write("<title>" + tm.title.replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</title>");
-        d.write("<script>" + tm.jsHead + "<" + "/script>");
+        d.write("<script>" + tm.jsHead + '<' + '/script> <script src="bin/testharness.js"><' + '/script>');
         d.write("<style>" + tm.css + "</style>");
         attributeLines(0);
         var htmlLines = html.split("\n");
@@ -1836,12 +1863,40 @@ var ToolsPaneWatches = new Tag().with({
         this.lastKnownWatchUpdateTime = lastWatchUpdateTime;
         this.lastKnownWatchFilter = lastWatchFilter;
         return shouldUpdate;
+    },
+    getScriptTestStatusText: function (expr) {
+        var status_text = {};
+        status_text[SCRIPT_TESTS.STATUS.PASS] = "Passed";
+        status_text[SCRIPT_TESTS.STATUS.FAIL] = "Failed";
+        status_text[SCRIPT_TESTS.STATUS.TIMEOUT] = "Timeout";
+        status_text[SCRIPT_TESTS.STATUS.NOTRUN] = "Not Run";
+        if (expr.status !== SCRIPT_TESTS.STATUS.PASS) {
+            if (expr.message) {
+                return expr.message;
+            }
+        }
+        return status_text[expr.status];
+    },
+    getScriptTestsOverallStatus: function () {
+        return "Found " + vm.numberOfScriptTests$() + " tests" + (vm.numberOfScriptTests$() > 0 ? ": " + vm.numberOfSuccessfulScriptTests$() + " passing, " + vm.numberOfFailedScriptTests$() + " failed" : '') + ".";
     }
-}).from(function (a) {
+}).from(function (a, c, self) {
     return React.createElement("tools-pane-watches", { block: true, id: a.id, "is-active-pane": a.activePane$() == a.id },
         React.createElement(Input, { class: "watch-filter-textbox", "value$": vm.watchFilterText$, onkeyup: function (e) { if (e.keyCode == 27) {
                 vm.watchFilterText$('');
             } }, type: "text", required: true, placeholder: "\uD83D\uDD0E", title: "Filter the watch list" }),
+        React.createElement("ul", { class: "watch-list" },
+            React.createElement("li", { hidden: vm.watchFilterText$() !== '' },
+                React.createElement("input", { type: "checkbox", checked: vm.isScriptTestsVisible$(), title: "Uncheck to hide script test results", onchange: function (e) { vm.setChangeInScriptTestVisibility(e.target.checked); } }),
+                React.createElement("input", { type: "text", disabled: true, title: self.getScriptTestsOverallStatus(), value: self.getScriptTestsOverallStatus() }),
+                React.createElement("output", null))),
+        React.createElement("ul", { class: "watch-list" }, vm.scriptTestResults$().map(function (expr, i, a) {
+            return React.createElement("li", { hidden: !vm.isScriptTestsVisible$() || vm.watchFilterText$() !== '' },
+                React.createElement("input", { type: "checkbox", checked: true, disabled: true, title: "Remove the test from your script to remove it" }),
+                React.createElement("input", { type: "text", title: expr.name, value: expr.name, disabled: true, style: "color:black;" }),
+                React.createElement("output", { assert: expr.status !== SCRIPT_TESTS.STATUS.PASS ? expr.status !== SCRIPT_TESTS.STATUS.NOTRUN ? 'fail' : 'none' : 'pass' }, "" + self.getScriptTestStatusText(expr)));
+        })),
+        vm.watchFilterText$() === '' ? React.createElement("br", null) : '',
         React.createElement("ul", { class: "watch-list" },
             React.createElement("li", null,
                 React.createElement("input", { type: "checkbox", checked: true, disabled: true, title: "Uncheck to delete this watch" }),
@@ -1850,20 +1905,20 @@ var ToolsPaneWatches = new Tag().with({
                         e.target.value = '';
                         e.target.focus();
                     } } }),
-                React.createElement("output", null)),
-            tm.watches.map(function (expr, i, a) {
-                return React.createElement("li", null,
-                    React.createElement("input", { type: "checkbox", checked: true, title: "Uncheck to delete this watch", onchange: function (e) { if (!e.target.checked) {
-                            vm.removePinnedWatch(expr);
-                            e.target.checked = true;
-                        } } }),
-                    React.createElement(Input, { type: "text", title: expr, "value$": m.prop2(function (x) { return expr; }, function (v) { if (a[i] != v) {
-                            a[i] = v;
-                            requestAnimationFrame(function (then) { return vm.refreshWatches(); });
-                        } }) }),
-                    React.createElement("output", { assert: vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr]) === vm.watchValues[expr] ? 'pass' : 'fail' : 'none' }, "" + (vm.watchDisplayValues[expr] || '') + (vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr]) !== vm.watchValues[expr] ? ", expected " + vm.watchExpectedValues[expr] : '' : '')),
-                    React.createElement("button", { class: "edit", title: "Edit the expected value", onclick: function (e) { return vm.setupExpectedValueFor(expr); } }, "edit"));
-            })),
+                React.createElement("output", null))),
+        React.createElement("ul", { class: "watch-list" }, tm.watches.map(function (expr, i, a) {
+            return React.createElement("li", null,
+                React.createElement("input", { type: "checkbox", checked: true, title: "Uncheck to delete this watch", onchange: function (e) { if (!e.target.checked) {
+                        vm.removePinnedWatch(expr);
+                        e.target.checked = true;
+                    } } }),
+                React.createElement(Input, { type: "text", title: expr, "value$": m.prop2(function (x) { return expr; }, function (v) { if (a[i] != v) {
+                        a[i] = v;
+                        requestAnimationFrame(function (then) { return vm.refreshWatches(); });
+                    } }) }),
+                React.createElement("output", { assert: vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr]) === vm.watchValues[expr] ? 'pass' : 'fail' : 'none' }, "" + (vm.watchDisplayValues[expr] || '') + (vm.watchExpectedValues[expr] ? eval(vm.watchExpectedValues[expr]) !== vm.watchValues[expr] ? ", expected " + vm.watchExpectedValues[expr] : '' : '')),
+                React.createElement("button", { class: "edit", title: "Edit the expected value", onclick: function (e) { return vm.setupExpectedValueFor(expr); } }, "edit"));
+        })),
         React.createElement("ul", { class: "watch-list" }, vm.autoWatches.map(function (expr) {
             return React.createElement("li", { hidden: vm.hiddenAutoWatches[expr] || !vm.watchFilter$().matches(expr) },
                 React.createElement("input", { type: "checkbox", title: "Check to pin this watch", onchange: function (e) { if (e.target.checked) {

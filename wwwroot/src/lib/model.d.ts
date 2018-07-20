@@ -21,3 +21,10 @@ interface TestModel extends TestDataModel {
 	watchValues$: Prop<string[]>,
 	sourceModel: TestDataModel
 }
+interface ScriptTestResultModel {
+	index: number,
+	name: string,
+	message?: string,
+	status: number,
+	phase: number
+}

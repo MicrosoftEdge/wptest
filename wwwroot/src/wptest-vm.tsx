@@ -113,6 +113,23 @@ var getTestData = () => {
 	return tmData;
 };
 
+/** Script test constants */ 
+const SCRIPT_TESTS = Object.freeze({
+	STATUS: Object.freeze({
+		PASS:0,
+		FAIL:1,
+		TIMEOUT:2,
+		NOTRUN:3
+	}),
+
+	PHASE: Object.freeze({
+		INITIAL:0,
+		STARTED:1,
+		HAS_RESULT:2,
+		COMPLETE:3
+	})
+});
+
 /** The data used to represent the current state of the view */
 class ViewModel {
 
@@ -229,6 +246,21 @@ class ViewModel {
 		return ds.map(prop => `gCS($0)['${prop}']`);
 
 	})())
+
+	/** Cache of the script test results */
+	scriptTestResults$ = m.prop<Array<ScriptTestResultModel>>([])
+
+	/** Determines whether the script test results should be visible */
+	isScriptTestsVisible$ = m.prop<boolean>(true)
+	setChangeInScriptTestVisibility(visible: boolean) {
+		this.isScriptTestsVisible$(visible)
+		this.lastWatchUpdateTime$(performance.now())
+	}
+
+	/** Metadata of all script test results */
+	numberOfScriptTests$ = m.prop<number>(0);
+	numberOfSuccessfulScriptTests$ = m.prop<number>(0);
+	numberOfFailedScriptTests$ = m.prop<number>(0);
 
 	/** Cache of the values of the watches (as js object) */
 	watchValues = Object.create(null) as { [key:string]: any }
@@ -636,7 +668,7 @@ class ViewModel {
 
 		// write the document content
 		d.write("<title>" + tm.title.replace(/</g,"&lt;").replace(/>/g,"&gt;") + "</title>");
-		d.write("<script>" + tm.jsHead + "<" + "/script>");
+		d.write("<script>" + tm.jsHead + '<' + '/script> <script src="bin/testharness.js"><' + '/script>');
 		d.write("<style>" + tm.css + "</style>");
 		
 		attributeLines(0);

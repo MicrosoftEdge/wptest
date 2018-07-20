@@ -346,16 +346,57 @@ var ToolsPaneWatches = new Tag <{ id:string, activePane$:Prop<string> }> ().with
 		this.lastKnownWatchUpdateTime = lastWatchUpdateTime;
 		this.lastKnownWatchFilter = lastWatchFilter;
 		return shouldUpdate;
+	},
+	getScriptTestStatusText(expr: ScriptTestResultModel): string {
+		var status_text = {};
+		status_text[SCRIPT_TESTS.STATUS.PASS] = "Passed";
+		status_text[SCRIPT_TESTS.STATUS.FAIL] = "Failed";
+		status_text[SCRIPT_TESTS.STATUS.TIMEOUT] = "Timeout";
+		status_text[SCRIPT_TESTS.STATUS.NOTRUN] = "Not Run";
+
+		if(expr.status !== SCRIPT_TESTS.STATUS.PASS) {
+			if(expr.message) {
+				return expr.message
+			}
+		}
+		 
+		return status_text[expr.status]
+	},
+	getScriptTestsOverallStatus(): string {
+		return `Found ${vm.numberOfScriptTests$()} tests${vm.numberOfScriptTests$() > 0 ? `: ${vm.numberOfSuccessfulScriptTests$()} passing, ${vm.numberOfFailedScriptTests$()} failed` : ''}.`
 	}
-}).from(a =>
+}).from((a, c, self) =>
 	<tools-pane-watches block id={a.id} is-active-pane={a.activePane$()==a.id}>
 		<Input class="watch-filter-textbox" value$={vm.watchFilterText$} onkeyup={e=>{if(e.keyCode==27){vm.watchFilterText$('')}}} type="text" required placeholder="🔎" title="Filter the watch list" />
+		
+		<ul class="watch-list">
+			<li hidden={vm.watchFilterText$() !== ''}>
+				<input type="checkbox" checked={vm.isScriptTestsVisible$()} title="Uncheck to hide script test results" onchange={e=>{vm.setChangeInScriptTestVisibility(e.target.checked)}} />
+				<input type="text" disabled title={self.getScriptTestsOverallStatus()} value={self.getScriptTestsOverallStatus()} />
+				<output></output>
+			</li>
+		</ul>
+		<ul class="watch-list">
+		{vm.scriptTestResults$().map((expr,i,a) => 
+			<li hidden={!vm.isScriptTestsVisible$() || vm.watchFilterText$() !== ''}>
+				<input type="checkbox" checked disabled title="Remove the test from your script to remove it" />
+				<input type="text" title={expr.name} value={expr.name} disabled style="color:black;"/>
+				<output assert={expr.status !== SCRIPT_TESTS.STATUS.PASS ? expr.status !== SCRIPT_TESTS.STATUS.NOTRUN ? 'fail':'none':'pass'}>
+					{`${self.getScriptTestStatusText(expr)}`}
+				</output>
+			</li>
+		)}
+		</ul>
+
+		{vm.watchFilterText$() === '' ? <br /> : ''}
 		<ul class="watch-list">
 			<li>
 				<input type="checkbox" checked disabled title="Uncheck to delete this watch" />
 				<input type="text" placeholder="/* add new watch here */" onchange={e=>{if(e.target.value) { vm.addPinnedWatch(e.target.value); e.target.value=''; e.target.focus(); }}} />
 				<output></output>
 			</li>
+		</ul>
+		<ul class="watch-list">
 		{tm.watches.map((expr,i,a) => 
 			<li>
 				<input type="checkbox" checked title="Uncheck to delete this watch" onchange={e=>{if(!e.target.checked) { vm.removePinnedWatch(expr); e.target.checked=true; }}} />

@@ -2314,7 +2314,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      */
  
      function Output() {
-         this.output_document = document;
          this.output_node = null;
          this.enabled = settings.output;
          this.phase = this.INITIAL;
@@ -2340,60 +2339,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          if (this.phase >= this.STARTED) {
              return;
          }
-         if (properties.output_document) {
-             this.output_document = properties.output_document;
-         } else {
-             this.output_document = document;
-         }
          this.phase = this.STARTED;
-     };
- 
-     Output.prototype.resolve_log = function() {
-         var output_document;
-         if (typeof this.output_document === "function") {
-             output_document = this.output_document.apply(undefined);
-         } else {
-             output_document = this.output_document;
-         }
-         if (!output_document) {
-             return;
-         }
-         var node = output_document.getElementById("log");
-         if (!node) {
-             if (!document.readyState == "loading") {
-                 return;
-             }
-             node = output_document.createElementNS("http://www.w3.org/1999/xhtml", "div");
-             node.id = "log";
-             if (output_document.body) {
-                 output_document.body.appendChild(node);
-             } else {
-                 var is_html = false;
-                 var is_svg = false;
-                 var output_window = output_document.defaultView;
-                 if (output_window && "SVGSVGElement" in output_window) {
-                     is_svg = output_document.documentElement instanceof output_window.SVGSVGElement;
-                 } else if (output_window) {
-                     is_html = (output_document.namespaceURI == "http://www.w3.org/1999/xhtml" &&
-                                output_document.localName == "html");
-                 }
-                 if (is_svg) {
-                     var foreignObject = output_document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
-                     foreignObject.setAttribute("width", "100%");
-                     foreignObject.setAttribute("height", "100%");
-                     output_document.documentElement.appendChild(foreignObject);
-                     foreignObject.appendChild(node);
-                 } else if (is_html) {
-                     var body = output_document.createElementNS("http://www.w3.org/1999/xhtml", "body");
-                     output_document.documentElement.appendChild(body);
-                     body.appendChild(node);
-                 } else {
-                     output_document.documentElement.appendChild(node);
-                 }
-             }
-         }
-         this.output_document = output_document;
-         this.output_node = node;
      };
  
      Output.prototype.show_status = function() {
@@ -2404,7 +2350,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
              return;
          }
          if (this.phase < this.HAVE_RESULTS) {
-             this.resolve_log();
              this.phase = this.HAVE_RESULTS;
          }
          var done_count = tests.tests.length - tests.num_pending;
@@ -2423,189 +2368,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          if (this.phase >= this.COMPLETE) {
              return;
          }
+
          if (!this.enabled) {
              return;
          }
-         if (!this.output_node) {
-             this.resolve_log();
-         }
          this.phase = this.COMPLETE;
- 
-         var log = this.output_node;
-         if (!log) {
-             return;
-         }
-         var output_document = this.output_document;
- 
-         while (log.lastChild) {
-             log.removeChild(log.lastChild);
-         }
- 
-         var stylesheet = output_document.createElementNS(xhtml_ns, "style");
-         stylesheet.textContent = stylesheetContent;
-         var heads = output_document.getElementsByTagName("head");
-         if (heads.length) {
-             heads[0].appendChild(stylesheet);
-         }
- 
-         var status_text_harness = {};
-         status_text_harness[harness_status.OK] = "OK";
-         status_text_harness[harness_status.ERROR] = "Error";
-         status_text_harness[harness_status.TIMEOUT] = "Timeout";
- 
-         var status_text = {};
-         status_text[Test.prototype.PASS] = "Pass";
-         status_text[Test.prototype.FAIL] = "Fail";
-         status_text[Test.prototype.TIMEOUT] = "Timeout";
-         status_text[Test.prototype.NOTRUN] = "Not Run";
- 
-         var status_number = {};
-         forEach(tests,
-                 function(test) {
-                     var status = status_text[test.status];
-                     if (status_number.hasOwnProperty(status)) {
-                         status_number[status] += 1;
-                     } else {
-                         status_number[status] = 1;
-                     }
-                 });
- 
-         function status_class(status)
-         {
-             return status.replace(/\s/g, '').toLowerCase();
-         }
- 
-         var summary_template = ["section", {"id":"summary"},
-                                 ["h2", {}, "Summary"],
-                                 function()
-                                 {
- 
-                                     var status = status_text_harness[harness_status.status];
-                                     var rv = [["section", {},
-                                                ["p", {},
-                                                 "Harness status: ",
-                                                 ["span", {"class":status_class(status)},
-                                                  status
-                                                 ],
-                                                ]
-                                               ]];
- 
-                                     if (harness_status.status === harness_status.ERROR) {
-                                         rv[0].push(["pre", {}, harness_status.message]);
-                                         if (harness_status.stack) {
-                                             rv[0].push(["pre", {}, harness_status.stack]);
-                                         }
-                                     }
-                                     return rv;
-                                 },
-                                 ["p", {}, "Found ${num_tests} tests"],
-                                 function() {
-                                     var rv = [["div", {}]];
-                                     var i = 0;
-                                     while (status_text.hasOwnProperty(i)) {
-                                         if (status_number.hasOwnProperty(status_text[i])) {
-                                             var status = status_text[i];
-                                             rv[0].push(["div", {"class":status_class(status)},
-                                                         ["label", {},
-                                                          ["input", {type:"checkbox", checked:"checked"}],
-                                                          status_number[status] + " " + status]]);
-                                         }
-                                         i++;
-                                     }
-                                     return rv;
-                                 },
-                                ];
- 
-         log.appendChild(render(summary_template, {num_tests:tests.length}, output_document));
- 
-         forEach(output_document.querySelectorAll("section#summary label"),
-                 function(element)
-                 {
-                     on_event(element, "click",
-                              function(e)
-                              {
-                                  if (output_document.getElementById("results") === null) {
-                                      e.preventDefault();
-                                      return;
-                                  }
-                                  var result_class = element.parentNode.getAttribute("class");
-                                  var style_element = output_document.querySelector("style#hide-" + result_class);
-                                  var input_element = element.querySelector("input");
-                                  if (!style_element && !input_element.checked) {
-                                      style_element = output_document.createElementNS(xhtml_ns, "style");
-                                      style_element.id = "hide-" + result_class;
-                                      style_element.textContent = "table#results > tbody > tr."+result_class+"{display:none}";
-                                      output_document.body.appendChild(style_element);
-                                  } else if (style_element && input_element.checked) {
-                                      style_element.parentNode.removeChild(style_element);
-                                  }
-                              });
-                 });
- 
-         // This use of innerHTML plus manual escaping is not recommended in
-         // general, but is necessary here for performance.  Using textContent
-         // on each individual <td> adds tens of seconds of execution time for
-         // large test suites (tens of thousands of tests).
-         function escape_html(s)
-         {
-             return s.replace(/\&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#39;");
-         }
- 
-         function has_assertions()
-         {
-             for (var i = 0; i < tests.length; i++) {
-                 if (tests[i].properties.hasOwnProperty("assert")) {
-                     return true;
-                 }
+
+         let testResults = []
+         let numberOfSuccess = 0;
+
+         forEach(tests, function(test) {
+             let testData = {
+                index: test.index,
+                name: test.name,
+                message: test.message,
+                status: test.status,
+                phase: test.phase
              }
-             return false;
-         }
- 
-         function get_assertion(test)
-         {
-             if (test.properties.hasOwnProperty("assert")) {
-                 if (Array.isArray(test.properties.assert)) {
-                     return test.properties.assert.join(' ');
-                 }
-                 return test.properties.assert;
-             }
-             return '';
-         }
- 
-         log.appendChild(document.createElementNS(xhtml_ns, "section"));
-         var assertions = has_assertions();
-         var html = "<h2>Details</h2><table id='results' " + (assertions ? "class='assertions'" : "" ) + ">" +
-             "<thead><tr><th>Result</th><th>Test Name</th>" +
-             (assertions ? "<th>Assertion</th>" : "") +
-             "<th>Message</th></tr></thead>" +
-             "<tbody>";
-         for (var i = 0; i < tests.length; i++) {
-             html += '<tr class="' +
-                 escape_html(status_class(status_text[tests[i].status])) +
-                 '"><td>' +
-                 escape_html(status_text[tests[i].status]) +
-                 "</td><td>" +
-                 escape_html(tests[i].name) +
-                 "</td><td>" +
-                 (assertions ? escape_html(get_assertion(tests[i])) + "</td><td>" : "") +
-                 escape_html(tests[i].message ? tests[i].message : " ") +
-                 (tests[i].stack ? "<pre>" +
-                  escape_html(tests[i].stack) +
-                  "</pre>": "") +
-                 "</td></tr>";
-         }
-         html += "</tbody></table>";
-         try {
-             log.lastChild.innerHTML = html;
-         } catch (e) {
-             log.appendChild(document.createElementNS(xhtml_ns, "p"))
-                .textContent = "Setting innerHTML for the log threw an exception.";
-             log.appendChild(document.createElementNS(xhtml_ns, "pre"))
-                .textContent = html;
-         }
+
+            testResults.push(testData)
+
+            if (test.status === parent.SCRIPT_TESTS.STATUS.PASS) {
+                numberOfSuccess += 1;
+            }
+         });
+
+         parent.vm.scriptTestResults$(testResults);
+         parent.vm.numberOfScriptTests$(tests.length);
+         parent.vm.numberOfSuccessfulScriptTests$(numberOfSuccess);
+         parent.vm.numberOfFailedScriptTests$(tests.length - numberOfSuccess);
+         parent.vm.refreshWatches();
      };
  
      /*
