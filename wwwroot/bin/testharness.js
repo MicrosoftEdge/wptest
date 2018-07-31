@@ -2375,7 +2375,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          this.phase = this.COMPLETE;
 
          let testResults = []
-         let numberOfSuccess = 0;
 
          forEach(tests, function(test) {
              let testData = {
@@ -2387,16 +2386,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
              }
 
             testResults.push(testData)
-
-            if (test.status === parent.SCRIPT_TESTS.STATUS.PASS) {
-                numberOfSuccess += 1;
-            }
          });
 
          parent.vm.scriptTestResults$(testResults);
-         parent.vm.numberOfScriptTests$(tests.length);
-         parent.vm.numberOfSuccessfulScriptTests$(numberOfSuccess);
-         parent.vm.numberOfFailedScriptTests$(tests.length - numberOfSuccess);
          parent.vm.refreshWatches();
      };
  

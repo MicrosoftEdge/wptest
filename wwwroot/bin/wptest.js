@@ -722,9 +722,13 @@ var ViewModel = /** @class */ (function () {
         /** Determines whether the script test results should be visible */
         this.isScriptTestsVisible$ = m.prop(true);
         /** Metadata of all script test results */
-        this.numberOfScriptTests$ = m.prop(0);
-        this.numberOfSuccessfulScriptTests$ = m.prop(0);
-        this.numberOfFailedScriptTests$ = m.prop(0);
+        this.numberOfScriptTests$ = cachedCast(function () { return _this.scriptTestResults$(); }, function (tests) { return tests.length; });
+        this.numberOfSuccessfulScriptTests$ = cachedCast(function () { return _this.scriptTestResults$(); }, function (tests) {
+            return tests.reduce(function (c, t) { return (c + (t.status === SCRIPT_TESTS.STATUS.PASS ? 1 : 0)); }, 0);
+        });
+        this.numberOfFailedScriptTests$ = cachedCast(function () { return _this.scriptTestResults$(); }, function (tests) {
+            return tests.reduce(function (c, t) { return (c + (t.status === SCRIPT_TESTS.STATUS.PASS ? 0 : 1)); }, 0);
+        });
         /** Cache of the values of the watches (as js object) */
         this.watchValues = Object.create(null);
         /** Cache of the values of the watches (as string) */
@@ -1865,17 +1869,18 @@ var ToolsPaneWatches = new Tag().with({
         return shouldUpdate;
     },
     getScriptTestStatusText: function (expr) {
-        var status_text = {};
-        status_text[SCRIPT_TESTS.STATUS.PASS] = "Passed";
-        status_text[SCRIPT_TESTS.STATUS.FAIL] = "Failed";
-        status_text[SCRIPT_TESTS.STATUS.TIMEOUT] = "Timeout";
-        status_text[SCRIPT_TESTS.STATUS.NOTRUN] = "Not Run";
         if (expr.status !== SCRIPT_TESTS.STATUS.PASS) {
             if (expr.message) {
                 return expr.message;
             }
         }
-        return status_text[expr.status];
+        switch (expr.status) {
+            case SCRIPT_TESTS.STATUS.PASS: return "Passed";
+            case SCRIPT_TESTS.STATUS.FAIL: return "Failed";
+            case SCRIPT_TESTS.STATUS.TIMEOUT: return "Timeout";
+            case SCRIPT_TESTS.STATUS.NOTRUN: return "Not Run";
+            default: return "Unknown Status";
+        }
     },
     getScriptTestsOverallStatus: function () {
         return "Found " + vm.numberOfScriptTests$() + " tests" + (vm.numberOfScriptTests$() > 0 ? ": " + vm.numberOfSuccessfulScriptTests$() + " passing, " + vm.numberOfFailedScriptTests$() + " failed" : '') + ".";
@@ -1885,13 +1890,13 @@ var ToolsPaneWatches = new Tag().with({
         React.createElement(Input, { class: "watch-filter-textbox", "value$": vm.watchFilterText$, onkeyup: function (e) { if (e.keyCode == 27) {
                 vm.watchFilterText$('');
             } }, type: "text", required: true, placeholder: "\uD83D\uDD0E", title: "Filter the watch list" }),
-        React.createElement("ul", { class: "watch-list" },
-            React.createElement("li", { hidden: vm.watchFilterText$() !== '' },
+        React.createElement("ul", { class: "watch-list", hidden: vm.watchFilterText$() !== '' },
+            React.createElement("li", null,
                 React.createElement("input", { type: "checkbox", checked: vm.isScriptTestsVisible$(), title: "Uncheck to hide script test results", onchange: function (e) { vm.setChangeInScriptTestVisibility(e.target.checked); } }),
                 React.createElement("input", { type: "text", disabled: true, title: self.getScriptTestsOverallStatus(), value: self.getScriptTestsOverallStatus() }),
                 React.createElement("output", null))),
-        React.createElement("ul", { class: "watch-list" }, vm.scriptTestResults$().map(function (expr, i, a) {
-            return React.createElement("li", { hidden: !vm.isScriptTestsVisible$() || vm.watchFilterText$() !== '' },
+        React.createElement("ul", { class: "watch-list", hidden: !vm.isScriptTestsVisible$() || vm.watchFilterText$() !== '' }, vm.scriptTestResults$().map(function (expr, i, a) {
+            return React.createElement("li", null,
                 React.createElement("input", { type: "checkbox", checked: true, disabled: true, title: "Remove the test from your script to remove it" }),
                 React.createElement("input", { type: "text", title: expr.name, value: expr.name, disabled: true, style: "color:black;" }),
                 React.createElement("output", { assert: expr.status !== SCRIPT_TESTS.STATUS.PASS ? expr.status !== SCRIPT_TESTS.STATUS.NOTRUN ? 'fail' : 'none' : 'pass' }, "" + self.getScriptTestStatusText(expr)));

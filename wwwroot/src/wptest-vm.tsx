@@ -258,10 +258,13 @@ class ViewModel {
 	}
 
 	/** Metadata of all script test results */
-	numberOfScriptTests$ = m.prop<number>(0);
-	numberOfSuccessfulScriptTests$ = m.prop<number>(0);
-	numberOfFailedScriptTests$ = m.prop<number>(0);
-
+	numberOfScriptTests$ = cachedCast(() => this.scriptTestResults$(), (tests: Array<ScriptTestResultModel>) => { return tests.length; } )
+	numberOfSuccessfulScriptTests$ = cachedCast(() => this.scriptTestResults$(), (tests: Array<ScriptTestResultModel>) => { 
+		return tests.reduce((c,t) => (c + (t.status === SCRIPT_TESTS.STATUS.PASS ? 1 : 0)), 0)
+	})
+	numberOfFailedScriptTests$ = cachedCast(() => this.scriptTestResults$(), (tests: Array<ScriptTestResultModel>) => {  
+		return tests.reduce((c,t) => (c + (t.status === SCRIPT_TESTS.STATUS.PASS ? 0 : 1)), 0)
+	})
 	/** Cache of the values of the watches (as js object) */
 	watchValues = Object.create(null) as { [key:string]: any }
 

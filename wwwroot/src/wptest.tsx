@@ -348,19 +348,19 @@ var ToolsPaneWatches = new Tag <{ id:string, activePane$:Prop<string> }> ().with
 		return shouldUpdate;
 	},
 	getScriptTestStatusText(expr: ScriptTestResultModel): string {
-		var status_text = {};
-		status_text[SCRIPT_TESTS.STATUS.PASS] = "Passed";
-		status_text[SCRIPT_TESTS.STATUS.FAIL] = "Failed";
-		status_text[SCRIPT_TESTS.STATUS.TIMEOUT] = "Timeout";
-		status_text[SCRIPT_TESTS.STATUS.NOTRUN] = "Not Run";
-
 		if(expr.status !== SCRIPT_TESTS.STATUS.PASS) {
 			if(expr.message) {
 				return expr.message
 			}
 		}
-		 
-		return status_text[expr.status]
+
+		switch(expr.status) {
+			case SCRIPT_TESTS.STATUS.PASS: return "Passed";
+			case SCRIPT_TESTS.STATUS.FAIL: return "Failed";
+			case SCRIPT_TESTS.STATUS.TIMEOUT: return "Timeout";
+			case SCRIPT_TESTS.STATUS.NOTRUN: return "Not Run";
+			default: return "Unknown Status"
+		}
 	},
 	getScriptTestsOverallStatus(): string {
 		return `Found ${vm.numberOfScriptTests$()} tests${vm.numberOfScriptTests$() > 0 ? `: ${vm.numberOfSuccessfulScriptTests$()} passing, ${vm.numberOfFailedScriptTests$()} failed` : ''}.`
@@ -369,16 +369,16 @@ var ToolsPaneWatches = new Tag <{ id:string, activePane$:Prop<string> }> ().with
 	<tools-pane-watches block id={a.id} is-active-pane={a.activePane$()==a.id}>
 		<Input class="watch-filter-textbox" value$={vm.watchFilterText$} onkeyup={e=>{if(e.keyCode==27){vm.watchFilterText$('')}}} type="text" required placeholder="🔎" title="Filter the watch list" />
 		
-		<ul class="watch-list">
-			<li hidden={vm.watchFilterText$() !== ''}>
+		<ul class="watch-list" hidden={vm.watchFilterText$() !== ''}>
+			<li>
 				<input type="checkbox" checked={vm.isScriptTestsVisible$()} title="Uncheck to hide script test results" onchange={e=>{vm.setChangeInScriptTestVisibility(e.target.checked)}} />
 				<input type="text" disabled title={self.getScriptTestsOverallStatus()} value={self.getScriptTestsOverallStatus()} />
 				<output></output>
 			</li>
 		</ul>
-		<ul class="watch-list">
+		<ul class="watch-list" hidden={!vm.isScriptTestsVisible$() || vm.watchFilterText$() !== ''}>
 		{vm.scriptTestResults$().map((expr,i,a) => 
-			<li hidden={!vm.isScriptTestsVisible$() || vm.watchFilterText$() !== ''}>
+			<li>
 				<input type="checkbox" checked disabled title="Remove the test from your script to remove it" />
 				<input type="text" title={expr.name} value={expr.name} disabled style="color:black;"/>
 				<output assert={expr.status !== SCRIPT_TESTS.STATUS.PASS ? expr.status !== SCRIPT_TESTS.STATUS.NOTRUN ? 'fail':'none':'pass'}>
