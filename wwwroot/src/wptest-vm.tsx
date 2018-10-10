@@ -627,9 +627,9 @@ class ViewModel {
 			recoverableElements.unshift(w1['$'+i]);
 			w1['$'+i] = w2['$'+i] = undefined;
 		}
-		for(var id of this.idMappings) {
+		this.idMappings.forEach(id => {
 			w2[id] = undefined;
-		}
+		});
 		this.idMappings.clear();
 
 		// extract the doctype, if any (default to html5 doctype)

@@ -72,7 +72,7 @@ declare var React : {
 
 interface Prop<T> {
 	(): T
-	(v:T): void
+	(v:T): T
 }
 
 declare namespace M {
