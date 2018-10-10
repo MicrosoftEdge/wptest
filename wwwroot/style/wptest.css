@@ -54,7 +54,8 @@ body > top-row > *, body > bottom-row > * {
 	body > dialog > section > h1 {
 		margin-top: 0;
 	}
-	body > dialog button {
+	body > dialog button,
+	body > dialog a[of="settings-dialog"] {
 		-webkit-appearance: none;
 		border: 1px solid;
 		background: #fff;
@@ -66,23 +67,32 @@ body > top-row > *, body > bottom-row > * {
 		transition: outline-width 0.1s;
 		cursor: pointer;
 		outline: 0px solid currentColor; outline-offset: -1px;
+		display: block;
 	}
-	body > dialog button:hover {
+	body > dialog button:hover,
+	body > dialog a[of="settings-dialog"]:hover {
 		color: red;
 		outline: 4px solid currentColor;
 	}
-	body > dialog button:focus {
+	body > dialog button:focus,
+	body > dialog a[of="settings-dialog"]:focus {
 		color: red;
 		outline: 4px solid currentColor;
 	}
-	body > dialog button:active {
+	body > dialog button:active,
+	body > dialog a[of="settings-dialog"]:active {
 		color: purple; border-color: red; outline-color: red;
 	}
 
 /* } */
 
-button[of="settings-dialog"] {
-	width: 100%; text-align: left;
+button[of="settings-dialog"],
+a[of="settings-dialog"] {
+	width: 100%; text-align: left; display: block;
+}
+
+a[of="settings-dialog"] {
+	text-decoration: none;
 }
 
 button[of="settings-dialog"] > span.icon {

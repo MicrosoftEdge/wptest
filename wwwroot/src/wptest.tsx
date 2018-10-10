@@ -1039,6 +1039,12 @@ var SettingsDialog = new Tag().with({
 						Enable the advanced text editor on this device from now on
 					</button>
 				</label>
+				<label style="display: block; margin-bottom: 10px">
+					<a style="display: block" href="https://github.com/MicrosoftEdge/wptest" target="_blank">
+						<span class="icon"></span>
+						Contribute on Github
+					</a>
+				</label>
 				<footer style="margin-top: 20px">
 					<input type="submit" value="Close" />
 				</footer>

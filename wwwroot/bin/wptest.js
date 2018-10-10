@@ -2455,6 +2455,10 @@ var SettingsDialog = new Tag().with({
                     React.createElement("button", { hidden: vm.settingsDialog.useMonaco$(), onclick: function (e) { return vm.settingsDialog.useMonaco$(true); }, style: "display: block" },
                         React.createElement("span", { class: "icon" }, "\u2699"),
                         "Enable the advanced text editor on this device from now on")),
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    React.createElement("a", { style: "display: block", href: "https://github.com/MicrosoftEdge/wptest", target: "_blank" },
+                        React.createElement("span", { class: "icon" }),
+                        "Contribute on Github")),
                 React.createElement("footer", { style: "margin-top: 20px" },
                     React.createElement("input", { type: "submit", value: "Close" })))));
 });
