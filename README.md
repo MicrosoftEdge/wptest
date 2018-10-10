@@ -43,7 +43,7 @@ This project was completed in [Typescript](http://www.typescriptlang.org/). For 
 
 This project uses the [Monaco (Visual Studio Code Online Editor)](https://github.com/Microsoft/monaco-editor) as its editor. You can find its definition in [monaco.d.ts](wwwroot/src/lib/monaco.d.ts)
 
-Run `complie.cmd` on any changes made to compile the Typescript into Javascript to use.
+Run `compile.cmd` on any changes made to compile the Typescript into Javascript to use.
 
 
 ### Submitting Contributions
