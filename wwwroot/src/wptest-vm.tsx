@@ -961,7 +961,8 @@ class ViewModel {
 		if(tm.jsBody) {
 			ln`<script>${"\n\n"+tm.jsBody+"\n\n"}</script>`;
 		}
-		ln`<script>
+		if(Array.from(tm.watches).length > 0 || !tm.jsBody) {
+			ln`<script>
 var test_description = document.title;
 promise_test(
 	t => {
@@ -989,6 +990,7 @@ promise_test(
 	test_description
 );
 </script>`;
+	}
 		return html;
 	}
 
