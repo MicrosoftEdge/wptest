@@ -2612,11 +2612,11 @@ var ExportDialog = new Tag().with({
         this.onbeforesubmit();
         // update the form submission info
         this.fileContent = vm.saveToFileString();
-        if (!/[.](html|htm|xht|xhtml)$/i.test(this.fileName$())) {
-            this.fileName = this.fileName$() + '.html';
+        if (!/[.](html|htm|xht|xhtml)$/i.test(vm.exportDialog.fileName$())) {
+            this.fileName = vm.exportDialog.fileName$() + '.html';
         }
         else {
-            this.fileName = this.fileName$();
+            this.fileName = vm.exportDialog.fileName$();
         }
         // close the dialog once submission is done
         setTimeout(function (time) { return _this.close(); }, 100);
