@@ -3,7 +3,7 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 */
 
-body {
+body, body > main {
 	
 	width: 100vw; height: 100vh;
 	margin: 0; padding: 0;
@@ -12,13 +12,13 @@ body {
 	flex-direction: column;	
 }
 
-body > * {
+body > *, body > main > * {
 	background: white;
 	transform: translateZ(0);
 	position: relative;
 }
 
-body > top-row > *, body > bottom-row > * {
+body > main > top-row > *, body > main > bottom-row > * {
 	flex: 1 1 0px;
 }
 
@@ -95,7 +95,8 @@ a[of="settings-dialog"] {
 	text-decoration: none;
 }
 
-button[of="settings-dialog"] > span.icon {
+button[of="settings-dialog"] > span.icon,
+a[of="settings-dialog"] > span.icon {
 	display: inline-block; 
 	width: 20px; 
 	vertical-align: top;

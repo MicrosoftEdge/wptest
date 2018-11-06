@@ -2,6 +2,19 @@ var __makeTemplateObject = (this && this.__makeTemplateObject) || function (cook
     if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
     return cooked;
 };
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    }
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -533,6 +546,18 @@ var getOutputPaneElement = function () {
     }
     return getOutputPane().contentDocument.documentElement;
 };
+/** Helper to handle autofocus of dialogs */
+function handleAutofocus(shouldGetFocus$, element) {
+    if (shouldGetFocus$()) {
+        var focusElement = (element.querySelector('[autofocus]')
+            || element.querySelector('input,button,select,textarea,[tabindex]'));
+        if (!focusElement)
+            return;
+        setTimeout(function (time) { return focusElement.focus(); }, 16);
+        setTimeout(function (time) { return focusElement instanceof HTMLInputElement && focusElement.select(); }, 16);
+        shouldGetFocus$(false);
+    }
+}
 function appendToConsole(logo, content) {
     var jsPaneConsoleOutput = window.jsPaneConsoleOutput;
     if (jsPaneConsoleOutput) {
@@ -598,7 +623,9 @@ var tm = m.addProps({
     jsBody: "",
     jsHead: "",
     watches: [],
-    watchValues: []
+    watchValues: [],
+    fileName: "testcase",
+    filePath: ""
 });
 /** The data of the test being written (as JSON) */
 var getTestData = function () {
@@ -795,6 +822,10 @@ var ViewModel = /** @class */ (function () {
         // ===================================================
         this.userTestcasesDialog = new UserTestcasesDialogViewModel(this);
         // ===================================================
+        // export testcases dialog
+        // ===================================================
+        this.exportDialog = new ExportDialogViewModel(this);
+        // ===================================================
         // output frame settings
         // ===================================================
         /** Whether the mouse is being tracked to select a new element */
@@ -935,7 +966,7 @@ var ViewModel = /** @class */ (function () {
                 dialog.chosenMode$(w1.$0.sourceTagId ? 'id' : 'selector');
                 dialog.chosenId$(w1.$0.sourceTagId || '');
                 dialog.chosenSelector$(buildSelectorFor(w1.$0));
-                dialog.isOpened$(true);
+                dialog.open();
                 return;
             }
         }
@@ -1014,13 +1045,24 @@ var ViewModel = /** @class */ (function () {
     // ===================================================
     // general dialog settings
     // ===================================================
+    ViewModel.prototype.isAnyDialogOpen$ = function () {
+        for (var key in this) {
+            var this_key = this[key];
+            if (this_key instanceof DialogViewModel) {
+                if (this_key.isOpened$()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
     ViewModel.prototype.closeAllDialogs = function () {
-        this.selectorGenerationDialog.isOpened$(false);
-        this.searchDialog.isOpened$(false);
-        this.welcomeDialog.isOpened$(false);
-        this.settingsDialog.isOpened$(false);
-        this.userTestcasesDialog.isOpened$(false);
-        this.deletedUserDialog.isOpened$(false);
+        for (var key in this) {
+            var this_key = this[key];
+            if (this_key instanceof DialogViewModel) {
+                this_key.close();
+            }
+        }
     };
     /** Removes the user cookie */
     ViewModel.prototype.logOut = function () {
@@ -1307,7 +1349,9 @@ var ViewModel = /** @class */ (function () {
             jsHead: '',
             jsBody: '',
             watches: [],
-            watchValues: []
+            watchValues: [],
+            fileName: 'testcase',
+            filePath: '',
         });
         if (newData) {
             Object.assign(tm.sourceModel, newData);
@@ -1326,15 +1370,15 @@ var ViewModel = /** @class */ (function () {
         location.hash = '#/' + vm.currentTestId$();
         history.replaceState(getTestData(), document.title, location.href); // TODO: clone
     };
-    /** Exports the test into a web platform test */
-    ViewModel.prototype.saveToFile = function () {
+    /** Exports the test into a web platform test and return the file content as string */
+    ViewModel.prototype.saveToFileString = function () {
         var html = '';
         function ln() {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
-            html += String.raw.apply(String, args) + '\n';
+            html += (html ? '\n' : '') + String.raw.apply(String, args);
         }
         // extract the doctype, if any (default to html5 doctype)
         var doctype = "<!doctype html>";
@@ -1345,17 +1389,6 @@ var ViewModel = /** @class */ (function () {
         // start the document
         ln(__makeTemplateObject(["", ""], ["", ""]), doctype);
         // ensure test case title:
-        if (!tm.title || tm.title == "UntitledTest") {
-            try {
-                tm.title = prompt("Enter a title for your test", tm.title);
-                if (!tm.title) {
-                    tm.title = 'UntitledTest';
-                }
-            }
-            catch (ex) {
-                // do nothing
-            }
-        }
         if (tm.title) {
             ln(__makeTemplateObject(["<title>", "</title>"], ["<title>", "</title>"]), tm.title.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
         }
@@ -1364,19 +1397,6 @@ var ViewModel = /** @class */ (function () {
         }
         // ensure test case harness:
         var pathToHarness = "/resources/";
-        try {
-            pathToHarness = prompt("Enter the path to the testharness folder", pathToHarness);
-            if (pathToHarness == null) { // User cancelled
-                alert("Export has been canceled.");
-                return;
-            }
-            if (pathToHarness && !/\/$/.test(pathToHarness)) {
-                pathToHarness += '/';
-            }
-        }
-        catch (ex) {
-            // do nothing
-        }
         ln(__makeTemplateObject(["<script src=\"", "testharness.js\"></script>"], ["<script src=\"", "testharness.js\"></script>"]), pathToHarness);
         ln(__makeTemplateObject(["<script src=\"", "testharnessreport.js\"></script>"], ["<script src=\"", "testharnessreport.js\"></script>"]), pathToHarness);
         // append the test case itself
@@ -1401,49 +1421,73 @@ var ViewModel = /** @class */ (function () {
         }); }).filter(function (w) { return !!w.expression; }).map(function (w) {
             return ".then(test => assert_equals(" + expandShorthandsIn(w.expression) + ", " + JSON.stringify(w.jsValue) + ", " + JSON.stringify("Invalid " + w.expression + ";") + "))";
         }).join('\n\t\t'));
+        return html;
+    };
+    /** Exports the test into a web platform test and initiate a download */
+    ViewModel.prototype.saveToFile = function () {
+        var html = this.saveToFileString();
         var blob = new Blob([html], { type: 'text/html' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
-        a.setAttribute("download", "testcase.html");
+        a.setAttribute("download", (tm.fileName || "testcase") + ".html");
         a.href = url;
         a.click();
         setTimeout(function (x) { return URL.revokeObjectURL(url); }, 10000);
     };
     return ViewModel;
 }());
-var SelectorGenerationDialogViewModel = /** @class */ (function () {
-    function SelectorGenerationDialogViewModel(vm) {
+var DialogViewModel = /** @class */ (function () {
+    function DialogViewModel(vm) {
         /** The attached view model */
         this.vm = null;
         /** Whether the dialog is opened or closed */
         this.isOpened$ = m.prop(false);
-        /** The raw watch expression we want to pin */
-        this.watchExpression$ = m.prop("");
-        /** Its precomputed value, in case one was given */
-        this.watchValue$ = m.prop({ defined: false, value: undefined });
-        /** The id auto-generated for the element, if any */
-        this.autoId$ = m.prop("");
-        /** Whether there is an auto-generated id (readonly) */
-        this.isAutoAvailable$ = cachedCast(this.autoId$, function (x) { return !!x; });
-        /** The mode chosen by the user */
-        this.chosenMode$ = m.prop("auto");
-        /** The id the user typed in the text box (id mode) */
-        this.chosenId$ = m.prop("");
-        /** The selector the user typed in the text box (selector mode) */
-        this.chosenSelector$ = m.prop("");
+        /** Whether the dialog should get focus */
+        this.shouldGetFocus$ = m.prop(false);
         this.vm = vm;
     }
-    return SelectorGenerationDialogViewModel;
+    /** Opens the dialog */
+    DialogViewModel.prototype.open = function () {
+        this.isOpened$(true);
+        this.shouldGetFocus$(true);
+    };
+    /** Closes the dialog */
+    DialogViewModel.prototype.close = function () {
+        this.isOpened$(false);
+        this.shouldGetFocus$(false);
+    };
+    return DialogViewModel;
 }());
-var SettingsDialogViewModel = /** @class */ (function () {
-    function SettingsDialogViewModel(vm) {
-        var _this = this;
-        /** The attached view model */
-        this.vm = null;
+var SelectorGenerationDialogViewModel = /** @class */ (function (_super) {
+    __extends(SelectorGenerationDialogViewModel, _super);
+    function SelectorGenerationDialogViewModel() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        /** The raw watch expression we want to pin */
+        _this.watchExpression$ = m.prop("");
+        /** Its precomputed value, in case one was given */
+        _this.watchValue$ = m.prop({ defined: false, value: undefined });
+        /** The id auto-generated for the element, if any */
+        _this.autoId$ = m.prop("");
+        /** Whether there is an auto-generated id (readonly) */
+        _this.isAutoAvailable$ = cachedCast(_this.autoId$, function (x) { return !!x; });
+        /** The mode chosen by the user */
+        _this.chosenMode$ = m.prop("auto");
+        /** The id the user typed in the text box (id mode) */
+        _this.chosenId$ = m.prop("");
+        /** The selector the user typed in the text box (selector mode) */
+        _this.chosenSelector$ = m.prop("");
+        return _this;
+    }
+    return SelectorGenerationDialogViewModel;
+}(DialogViewModel));
+var SettingsDialogViewModel = /** @class */ (function (_super) {
+    __extends(SettingsDialogViewModel, _super);
+    function SettingsDialogViewModel() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
         /** Whether the dialog is opened or closed */
-        this.isOpened$ = m.prop(false);
+        _this.isOpened$ = m.prop(false);
         /** Whether to use Monaco on this device or not */
-        this.useMonaco$ = m.prop2(function (v) {
+        _this.useMonaco$ = m.prop2(function (v) {
             if (typeof (_this.intenal_useMonaco) == 'undefined') {
                 _this.intenal_useMonaco = !localStorage.getItem('noMonaco');
             }
@@ -1452,7 +1496,7 @@ var SettingsDialogViewModel = /** @class */ (function () {
             _this.intenal_useMonaco = !!v;
             localStorage.setItem('noMonaco', v ? '' : 'true');
         });
-        this.vm = vm;
+        return _this;
     }
     /** Ask the viewmodel to log the user out */
     SettingsDialogViewModel.prototype.logOut = function () {
@@ -1468,43 +1512,39 @@ var SettingsDialogViewModel = /** @class */ (function () {
     };
     /** Open the welcome dialog */
     SettingsDialogViewModel.prototype.openWelcomeDialog = function () {
-        this.vm.welcomeDialog.isOpened$(true);
+        this.vm.welcomeDialog.open();
     };
     /** Open the search dialog */
     SettingsDialogViewModel.prototype.openSearchDialog = function () {
-        this.vm.searchDialog.isOpened$(true);
+        this.vm.searchDialog.open();
     };
     return SettingsDialogViewModel;
-}());
-var DeletedUserDialogViewModel = /** @class */ (function () {
-    function DeletedUserDialogViewModel(vm) {
-        /** The attached view model */
-        this.vm = null;
-        /** Whether the dialog is opened or closed */
-        this.isOpened$ = m.prop(false);
+}(DialogViewModel));
+var DeletedUserDialogViewModel = /** @class */ (function (_super) {
+    __extends(DeletedUserDialogViewModel, _super);
+    function DeletedUserDialogViewModel() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
         /** The user that ws deleted */
-        this.deletedUser$ = m.prop("");
+        _this.deletedUser$ = m.prop("");
         /** The username of the anonymous user name assigned to the tests from the deleted user */
-        this.newAnonymousUser$ = m.prop("");
-        this.vm = vm;
+        _this.newAnonymousUser$ = m.prop("");
+        return _this;
     }
     return DeletedUserDialogViewModel;
-}());
-var UserTestcasesDialogViewModel = /** @class */ (function () {
+}(DialogViewModel));
+var UserTestcasesDialogViewModel = /** @class */ (function (_super) {
+    __extends(UserTestcasesDialogViewModel, _super);
     function UserTestcasesDialogViewModel(vm) {
-        /** The attached view model */
-        this.vm = null;
-        /** Whether the dialog is opened or closed */
-        this.isOpened$ = m.prop(false);
+        var _this = _super.call(this, vm) || this;
         /** The author to display the tests of */
-        this.author$ = m.prop("");
+        _this.author$ = m.prop("");
         /** The tests created by this author */
-        this.tests$ = m.prop([]);
+        _this.tests$ = m.prop([]);
         /** The previous URL that was open to return to */
-        this.previousUrl$ = m.prop("");
-        this.vm = vm;
-        this.author$(vm.githubUserName$());
-        this.previousUrl$("/#/new");
+        _this.previousUrl$ = m.prop("");
+        _this.author$(vm.githubUserName$());
+        _this.previousUrl$("/#/new");
+        return _this;
     }
     UserTestcasesDialogViewModel.prototype.updateAuthorOfTestcases = function (author) {
         this.author$(author);
@@ -1514,17 +1554,14 @@ var UserTestcasesDialogViewModel = /** @class */ (function () {
         this.vm.deleteTestcase(this.author$(), id);
     };
     return UserTestcasesDialogViewModel;
-}());
-var WelcomeDialogViewModel = /** @class */ (function () {
+}(DialogViewModel));
+var WelcomeDialogViewModel = /** @class */ (function (_super) {
+    __extends(WelcomeDialogViewModel, _super);
     function WelcomeDialogViewModel(vm) {
-        /** The attached view model */
-        this.vm = null;
-        /** Whether the dialog is opened or closed */
-        this.isOpened$ = m.prop(false);
-        this.vm = vm;
+        var _this = _super.call(this, vm) || this;
         if (location.hash == '' || location.hash == '#/new') {
             if (!localStorage.getItem('noWelcome') && !vm.githubIsConnected$()) {
-                this.isOpened$(true);
+                _this.open();
             }
             else {
                 localStorage.setItem('noWelcome', 'true');
@@ -1533,22 +1570,19 @@ var WelcomeDialogViewModel = /** @class */ (function () {
         else {
             localStorage.setItem('noWelcome', 'true');
         }
+        return _this;
     }
     return WelcomeDialogViewModel;
-}());
-var SearchDialogViewModel = /** @class */ (function () {
-    function SearchDialogViewModel(vm) {
-        /** The attached view model */
-        this.vm = null;
-        /** Whether the dialog is opened or closed */
-        this.isOpened$ = m.prop(false);
-        /** Whether the dialog should get focus */
-        this.shouldGetFocus$ = m.prop(false);
+}(DialogViewModel));
+var SearchDialogViewModel = /** @class */ (function (_super) {
+    __extends(SearchDialogViewModel, _super);
+    function SearchDialogViewModel() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
         /** The text that is being searched */
-        this.searchTerms$ = m.prop("");
+        _this.searchTerms$ = m.prop("");
         /** The text that is being searched */
-        this.searchUrl$ = m.prop("about:blank");
-        this.vm = vm;
+        _this.searchUrl$ = m.prop("about:blank");
+        return _this;
     }
     /** Opens the dialog */
     SearchDialogViewModel.prototype.open = function () {
@@ -1560,7 +1594,46 @@ var SearchDialogViewModel = /** @class */ (function () {
         this.shouldGetFocus$(true);
     };
     return SearchDialogViewModel;
-}());
+}(DialogViewModel));
+var ExportDialogViewModel = /** @class */ (function (_super) {
+    __extends(ExportDialogViewModel, _super);
+    function ExportDialogViewModel() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        /** The title of the test */
+        _this.title$ = m.prop("UntitledTest");
+        /** The file name of the test */
+        _this.fileName$ = m.prop("testcase");
+        /** The path to the spec's test folder */
+        _this.filePath$ = m.prop("");
+        return _this;
+    }
+    /** Opens the dialog */
+    ExportDialogViewModel.prototype.open = function (tm) {
+        if (!this.isOpened$()) {
+            this.title$("UntitledTest");
+            this.fileName$("testcase");
+            this.filePath$("");
+            this.isOpened$(true);
+        }
+        this.shouldGetFocus$(true);
+        if (tm) {
+            this.importValues(tm);
+        }
+    };
+    /** Import the values from the global scope */
+    ExportDialogViewModel.prototype.importValues = function (tm) {
+        this.title$(tm.title$());
+        this.fileName$(tm.fileName$());
+        this.filePath$(tm.filePath$());
+    };
+    /* Export the values from the global scope */
+    ExportDialogViewModel.prototype.exportValues = function (tm) {
+        tm.title$(this.title$());
+        tm.fileName$(this.fileName$());
+        tm.filePath$(this.filePath$());
+    };
+    return ExportDialogViewModel;
+}(DialogViewModel));
 var vm = new ViewModel();
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
@@ -1589,8 +1662,8 @@ var BodyToolbar = new Tag().from(function (a) {
             else {
                 vm.saveOnline();
             } }, title: "Save your test online (Shift: url, Alt: local storage)" }, "Save"),
-        React.createElement("button", { onclick: function (e) { return vm.saveToFile(); }, title: "Download as a weplatform test case" }, "Export"),
-        React.createElement("button", { onclick: function (e) { return vm.settingsDialog.isOpened$(true); }, title: "Open the settings dialog" }, "\u22C5\u22C5\u22C5"),
+        React.createElement("button", { onclick: function (e) { return vm.exportDialog.open(tm); }, title: "Download or upload as a weplatform test case" }, "Export"),
+        React.createElement("button", { onclick: function (e) { return vm.settingsDialog.open(); }, title: "Open the settings dialog" }, "\u22C5\u22C5\u22C5"),
         React.createElement("hr", { style: "visibility: hidden; flex:1 0 0px;" }),
         React.createElement(Input, { "value$": a.model.title$, title: "Title of your test case" }));
 });
@@ -2404,6 +2477,9 @@ var DeletedUserDialog = new Tag().with({
                     React.createElement("input", { type: "submit", value: " Got it! " })))));
 });
 var SettingsDialog = new Tag().with({
+    onupdate: function (vnode) {
+        handleAutofocus(vm.settingsDialog.shouldGetFocus$, vnode.dom);
+    },
     close: function () {
         var form = vm.settingsDialog;
         form.isOpened$(false);
@@ -2412,8 +2488,8 @@ var SettingsDialog = new Tag().with({
         var confirmed = confirm("Are you sure you want to delete your account?");
         if (confirmed) {
             vm.settingsDialog.deleteUser();
-            vm.deletedUserDialog.isOpened$(true);
-            vm.settingsDialog.isOpened$(false);
+            vm.settingsDialog.close();
+            vm.deletedUserDialog.open();
         }
     }
 }).from(function (a, s, self) {
@@ -2451,6 +2527,11 @@ var SettingsDialog = new Tag().with({
                         "Remove your account (",
                         vm.githubUserName$(),
                         ") from wptest")),
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    React.createElement("a", { style: "display: block", href: "https://github.com/MicrosoftEdge/wptest", target: "_blank" },
+                        React.createElement("span", { class: "icon" }, "\uD83C\uDF74"),
+                        "Contribute and/or fork this site on Github")),
+                "\t\t\t\t",
                 React.createElement("hr", null),
                 React.createElement("label", { style: "display: block; margin-bottom: 10px" },
                     React.createElement("button", { hidden: !vm.settingsDialog.useMonaco$(), onclick: function (e) { return vm.settingsDialog.useMonaco$(false); }, style: "display: block" },
@@ -2459,14 +2540,13 @@ var SettingsDialog = new Tag().with({
                     React.createElement("button", { hidden: vm.settingsDialog.useMonaco$(), onclick: function (e) { return vm.settingsDialog.useMonaco$(true); }, style: "display: block" },
                         React.createElement("span", { class: "icon" }, "\u2699"),
                         "Enable the advanced text editor on this device from now on")),
-                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
-                    React.createElement("a", { style: "display: block", href: "https://github.com/MicrosoftEdge/wptest", target: "_blank" },
-                        React.createElement("span", { class: "icon" }),
-                        "Contribute on Github")),
                 React.createElement("footer", { style: "margin-top: 20px" },
                     React.createElement("input", { type: "submit", value: "Close" })))));
 });
 var SearchDialog = new Tag().with({
+    onupdate: function (vnode) {
+        handleAutofocus(vm.searchDialog.shouldGetFocus$, vnode.dom);
+    },
     search: function () {
         var form = vm.searchDialog;
         form.searchUrl$('/search?q=' + encodeURIComponent(form.searchTerms$()) + '&time=' + Date.now());
@@ -2475,17 +2555,6 @@ var SearchDialog = new Tag().with({
         var form = vm.searchDialog;
         form.isOpened$(false);
     },
-    onupdate: function () {
-        var form = vm.searchDialog;
-        if (this.wasOpened != form.isOpened$()) {
-            if (this.wasOpened) {
-                // TODO: close
-            }
-            else {
-                // TODO: open
-            }
-        }
-    }
 }).from(function (a, s, self) {
     return React.createElement("dialog", { as: "search-dialog", autofocus: true, hidden: !vm.searchDialog.isOpened$() },
         React.createElement("section", { tabindex: "-1", role: "search", style: "width: 80%; width: 80vw" },
@@ -2501,26 +2570,75 @@ var SearchDialog = new Tag().with({
                     React.createElement("input", { type: "button", onclick: function (e) { return self.close(); }, value: "Close" })))));
 });
 var WelcomeDialog = new Tag().with({
+    onupdate: function (vnode) {
+        handleAutofocus((function (v) { return vm.welcomeDialog.isOpened$(); }), vnode.dom);
+    },
     close: function () {
         var form = vm.welcomeDialog;
         localStorage.setItem('noWelcome', 'true');
         form.isOpened$(false);
     }
 }).from(function (a, s, self) {
-    return React.createElement("dialog", { as: "welcome-dialog", autofocus: true, hidden: !vm.welcomeDialog.isOpened$() },
+    return React.createElement("dialog", { as: "welcome-dialog", hidden: !vm.welcomeDialog.isOpened$() },
         React.createElement("section", { tabindex: "-1" },
             React.createElement("h1", null, "The Web Platform Test Center"),
             React.createElement("form", { action: "POST", onsubmit: function (e) { e.preventDefault(); self.close(); } },
                 React.createElement("p", null, "This websites provides tools to simplify the creation of reduced web platform test cases and the search of previously-written test cases."),
                 React.createElement("p", null, "It is primarily addressed at engineers who build web browsers, and web developers who want to help bugs getting fixed by filing reduced issues on existing browsers."),
                 React.createElement("footer", { style: "margin-top: 20px" },
-                    React.createElement("input", { type: "submit", value: " Got it! " })))));
+                    React.createElement("input", { type: "submit", value: " Got it! ", autofocus: true })))));
+});
+var ExportDialog = new Tag().with({
+    onupdate: function (vnode) {
+        handleAutofocus(vm.exportDialog.shouldGetFocus$, vnode.dom);
+    },
+    close: function () {
+        var dialog = vm.exportDialog;
+        dialog.isOpened$(false);
+    },
+    onbeforesubmit: function () {
+        var dialog = vm.exportDialog;
+        dialog.exportValues(tm);
+    },
+    onsubmit: function (e) {
+        var _this = this;
+        // make sure we sync before going any further
+        this.onbeforesubmit();
+        // update the form submission info
+        this.fileContent = vm.saveToFileString();
+        // close the dialog once submission is done
+        setTimeout(function (time) { return _this.close(); }, 100);
+    },
+}).from(function (a, s, self) {
+    return React.createElement("dialog", { as: "export-dialog", hidden: !vm.exportDialog.isOpened$() },
+        React.createElement("section", { tabindex: "-1" },
+            React.createElement("h1", null, "Exporting your test"),
+            React.createElement("form", { method: "GET", action: "https://github.com/web-platform-tests/wpt/new/master/" + vm.exportDialog.filePath$(), target: "_blank", onsubmit: function (e) { return self.onsubmit(e); }, style: "font-size: 87.5%" },
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    "Test title:",
+                    React.createElement("br", null),
+                    React.createElement(Input, { name: "message", "value$": vm.exportDialog.title$, autofocus: /^(|UntitledTest)$/.test(vm.exportDialog.title$()), style: "width: 400px" })),
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    "File name:",
+                    React.createElement("br", null),
+                    React.createElement(Input, { name: "filename", "value$": vm.exportDialog.fileName$, autofocus: /^(|testcase)$/.test(vm.exportDialog.fileName$()), style: "width: 400px" })),
+                React.createElement("label", { style: "display: block; margin-bottom: 10px" },
+                    "Test folder path:",
+                    React.createElement("br", null),
+                    React.createElement(Input, { "value$": vm.exportDialog.filePath$, autofocus: /^()$/.test(vm.exportDialog.filePath$()), style: "width: 400px" })),
+                React.createElement("input", { type: "hidden", name: "value", value: self.fileContent }),
+                React.createElement("footer", { style: "margin-top: 20px" },
+                    React.createElement("input", { type: "button", value: "Download", onclick: function (e) { self.onbeforesubmit(); vm.saveToFile(); self.close(); } }),
+                    "\u00A0",
+                    React.createElement("input", { type: "submit", value: "Create pull request", autofocus: true }),
+                    "\u00A0",
+                    React.createElement("input", { type: "button", value: "Close", onclick: function (e) { return self.close(); } })))));
 });
 var TestEditorView = new Tag().from(function (a) {
     // check if url pointing to an user instead of test
     if (location.hash.substr(2, 2) === 'u/') {
         vm.closeAllDialogs();
-        vm.userTestcasesDialog.isOpened$(true);
+        vm.userTestcasesDialog.open();
         vm.userTestcasesDialog.updateAuthorOfTestcases(location.hash.substr(4));
     }
     // if the page moved to a new id 
@@ -2568,21 +2686,23 @@ var TestEditorView = new Tag().from(function (a) {
     }
     // in all cases, we return the same markup though to avoid trashing
     return (React.createElement("body", null,
-        React.createElement(BodyToolbar, { model: tm }),
-        React.createElement("top-row", { row: true },
-            React.createElement(HTMLPane, { "isFocused$": vm.isHtmlPaneFocused$ }),
-            React.createElement(CSSPane, { "isFocused$": vm.isCssPaneFocused$ }),
-            React.createElement(JSPane, { "isFocused$": vm.isJsPaneFocused$ })),
-        React.createElement("bottom-row", { row: true },
-            React.createElement(OutputPane, null),
-            React.createElement(DOMViewPane, null),
-            React.createElement(ToolsPane, null)),
+        React.createElement("main", { inert: vm.isAnyDialogOpen$() },
+            React.createElement(BodyToolbar, { model: tm }),
+            React.createElement("top-row", { row: true },
+                React.createElement(HTMLPane, { "isFocused$": vm.isHtmlPaneFocused$ }),
+                React.createElement(CSSPane, { "isFocused$": vm.isCssPaneFocused$ }),
+                React.createElement(JSPane, { "isFocused$": vm.isJsPaneFocused$ })),
+            React.createElement("bottom-row", { row: true },
+                React.createElement(OutputPane, null),
+                React.createElement(DOMViewPane, null),
+                React.createElement(ToolsPane, null))),
         React.createElement(UserTestcasesDialog, null),
         React.createElement(SelectorGenerationDialog, null),
         React.createElement(SettingsDialog, null),
         React.createElement(DeletedUserDialog, null),
         React.createElement(SearchDialog, null),
-        React.createElement(WelcomeDialog, null))).children;
+        React.createElement(WelcomeDialog, null),
+        React.createElement(ExportDialog, null))).children;
 });
 m.route(document.body, '/new', { '/:id...': TestEditorView(), '/u/:author...': TestEditorView() });
 //----------------------------------------------------------------

@@ -49,7 +49,7 @@ if(isTestModeEnabled) {
 
 // connect to mongodb
 var db = null, tests = null, authors = null;
-var asTestWihtoutTags = { id: 1, author: 1, creationDate: 1, title: 1, html: 1, css: 1, jsBody: 1, jsHead: 1, watches: 1, watchValues: 1 };
+var asTestWihtoutTags = { id: 1, author: 1, creationDate: 1, title: 1, fileName: 1, filePath: 1, html: 1, css: 1, jsBody: 1, jsHead: 1, watches: 1, watchValues: 1 };
 require('mongodb').connect(CFG.MONGO_URL, function (err, new_db) {
 
 	// ensure success
@@ -406,6 +406,8 @@ app.post('/new/testcase', (req, res) => {
 			author: author.username,
 			creationDate: Date.now(),
 			title: String(test.title),
+			fileName: String(test.fileName),
+			filePath: String(test.filePath),
 			html: String(test.html),
 			css: String(test.css),
 			jsBody: String(test.jsBody),
@@ -419,7 +421,7 @@ app.post('/new/testcase', (req, res) => {
 		try {
 			test.tags = [ 
 				... new Set(
-					(test.title + '\n' + test.html + '\n' + test.css + '\n' + test.jsBody + '\n' + test.jsHead).replace(/\-[0-9]+/gi,' ').replace(/[0-9]+/gi,'').toLowerCase().match(/[-_a-z]*[a-z]([-_a-z]*[a-z])?/g)
+					(test.title + '\n' + test.fileName + '\n' + test.filePath + '\n' + test.html + '\n' + test.css + '\n' + test.jsBody + '\n' + test.jsHead).replace(/\-[0-9]+/gi,' ').replace(/[0-9]+/gi,'').toLowerCase().match(/[-_a-z]*[a-z]([-_a-z]*[a-z])?/g)
 				)
 			].sort();
 		} catch (ex) {

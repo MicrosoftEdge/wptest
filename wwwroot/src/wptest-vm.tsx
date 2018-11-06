@@ -26,6 +26,24 @@ var getOutputPaneElement= function(): Element {
 	return getOutputPane().contentDocument.documentElement;
 }
 
+/** Helper to handle autofocus of dialogs */
+function handleAutofocus(shouldGetFocus$: Prop<boolean>, element: HTMLElement) {
+	if(shouldGetFocus$()) {
+			
+		var focusElement = (
+			element.querySelector('[autofocus]') 
+			|| element.querySelector('input,button,select,textarea,[tabindex]')
+		) as HTMLElement;
+
+		if(!focusElement) return; 
+		
+		setTimeout(time => focusElement.focus(), 16);
+		setTimeout(time => focusElement instanceof HTMLInputElement && focusElement.select(), 16);
+		shouldGetFocus$(false);
+
+	}
+}
+
 /** The console pane (legacy code only) */
 interface Window { jsPaneConsoleOutput?: HTMLPreElement }
 function appendToConsole(logo, content) {
@@ -100,7 +118,9 @@ var tm = m.addProps<TestDataModel,TestModel>({
 	jsBody: "",
 	jsHead: "",
 	watches: [ ],
-	watchValues: []
+	watchValues: [],
+	fileName: "testcase",
+	filePath: ""
 });
 
 /** The data of the test being written (as JSON) */
@@ -413,7 +433,7 @@ class ViewModel {
 				dialog.chosenMode$(w1.$0.sourceTagId ? 'id' : 'selector')
 				dialog.chosenId$(w1.$0.sourceTagId||'');
 				dialog.chosenSelector$(buildSelectorFor(w1.$0));
-				dialog.isOpened$(true);
+				dialog.open();
 				return;
 			}
 		}
@@ -501,13 +521,25 @@ class ViewModel {
 	// general dialog settings
 	// ===================================================
 
+	isAnyDialogOpen$() {
+		for(var key in this) {
+			var this_key = this[key];
+			if(this_key instanceof DialogViewModel) {
+				if(this_key.isOpened$()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	closeAllDialogs() {
-		this.selectorGenerationDialog.isOpened$(false);
-		this.searchDialog.isOpened$(false);
-		this.welcomeDialog.isOpened$(false);
-		this.settingsDialog.isOpened$(false);
-		this.userTestcasesDialog.isOpened$(false);
-		this.deletedUserDialog.isOpened$(false);
+		for(var key in this) {
+			var this_key = this[key];
+			if(this_key instanceof DialogViewModel) {
+				this_key.close()
+			}
+		}
 	}
 
 	// ===================================================
@@ -578,6 +610,12 @@ class ViewModel {
 	// ===================================================
 
 	userTestcasesDialog = new UserTestcasesDialogViewModel(this)
+
+	// ===================================================
+	// export testcases dialog
+	// ===================================================
+
+	exportDialog = new ExportDialogViewModel(this)
 
 	// ===================================================
 	// output frame settings
@@ -859,7 +897,9 @@ class ViewModel {
 			jsHead: '',
 			jsBody: '',
 			watches: [],
-			watchValues: []
+			watchValues: [],
+			fileName: 'testcase',
+			filePath: '',
 		});
 		if(newData) {
 			Object.assign<TestDataModel,TestDataModel>(tm.sourceModel, newData);
@@ -880,10 +920,10 @@ class ViewModel {
 		history.replaceState(getTestData(), document.title, location.href); // TODO: clone
 	}
 
-	/** Exports the test into a web platform test */
-	saveToFile() {
+	/** Exports the test into a web platform test and return the file content as string */
+	saveToFileString() {
 		var html = '';
-		function ln(...args) { html += (String.raw as any)(...args) + '\n'; }
+		function ln(...args) { html += (html ? '\n' : '') + (String.raw as any)(...args); }
 		
 		// extract the doctype, if any (default to html5 doctype)
 		var doctype = "<!doctype html>";
@@ -895,14 +935,6 @@ class ViewModel {
 		ln`${doctype}`;
 
 		// ensure test case title:
-		if(!tm.title || tm.title == "UntitledTest") {
-			try {
-				tm.title = prompt("Enter a title for your test", tm.title);
-				if(!tm.title) { tm.title = 'UntitledTest'; }
-			} catch (ex) {
-				// do nothing
-			}
-		}
 		if(tm.title) {
 			ln`<title>${tm.title.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</title>`;
 		} else {
@@ -911,12 +943,6 @@ class ViewModel {
 
 		// ensure test case harness:
 		var pathToHarness = "/resources/";
-		try {
-			pathToHarness = prompt("Enter the path to the testharness folder", pathToHarness);
-			if(pathToHarness && !/\/$/.test(pathToHarness)) { pathToHarness += '/'; }
-		} catch (ex) {
-			// do nothing
-		}
 		ln`<script src="${pathToHarness}testharness.js"></script>`;
 		ln`<script src="${pathToHarness}testharnessreport.js"></script>`;
 
@@ -963,18 +989,23 @@ promise_test(
 	test_description
 );
 </script>`;
+		return html;
+	}
 
+	/** Exports the test into a web platform test and initiate a download */
+	saveToFile() {
+		var html = this.saveToFileString();
 		var blob = new Blob([html], { type: 'text/html' });
 		var url = URL.createObjectURL(blob);
 		var a = document.createElement("a");
-		a.setAttribute("download", "testcase.html");
+		a.setAttribute("download", (tm.fileName || "testcase") + ".html");
 		a.href = url;
 		a.click();
 		setTimeout(x => URL.revokeObjectURL(url), 10000);
 	}
 }
 
-class SelectorGenerationDialogViewModel {
+abstract class DialogViewModel {
 
 	/** The attached view model */
 	vm = null as ViewModel;
@@ -984,6 +1015,25 @@ class SelectorGenerationDialogViewModel {
 
 	/** Whether the dialog is opened or closed */
 	isOpened$ = m.prop(false)
+
+	/** Whether the dialog should get focus */
+	shouldGetFocus$ = m.prop(false)
+
+	/** Opens the dialog */
+	open() {
+		this.isOpened$(true);
+		this.shouldGetFocus$(true);
+	}
+
+	/** Closes the dialog */
+	close() {
+		this.isOpened$(false);
+		this.shouldGetFocus$(false);
+	}
+
+}
+
+class SelectorGenerationDialogViewModel extends DialogViewModel {
 
 	/** The raw watch expression we want to pin */
 	watchExpression$ = m.prop("")
@@ -1008,13 +1058,7 @@ class SelectorGenerationDialogViewModel {
 
 }
 
-class SettingsDialogViewModel {
-
-	/** The attached view model */
-	vm = null as ViewModel;
-	constructor(vm: ViewModel) {
-		this.vm = vm;
-	}
+class SettingsDialogViewModel extends DialogViewModel {
 
 	/** Whether the dialog is opened or closed */
 	isOpened$ = m.prop(false)
@@ -1053,25 +1097,16 @@ class SettingsDialogViewModel {
 
 	/** Open the welcome dialog */
 	openWelcomeDialog() {
-		this.vm.welcomeDialog.isOpened$(true);
+		this.vm.welcomeDialog.open();
 	}
 
 	/** Open the search dialog */
 	openSearchDialog() {
-		this.vm.searchDialog.isOpened$(true);
+		this.vm.searchDialog.open();
 	}
 }
 
-class DeletedUserDialogViewModel {
-	/** The attached view model */
-	vm = null as ViewModel;
-	constructor(vm: ViewModel) {
-		this.vm = vm;
-	}
-
-	/** Whether the dialog is opened or closed */
-	isOpened$ = m.prop(false)
-
+class DeletedUserDialogViewModel extends DialogViewModel {
 	/** The user that ws deleted */
 	deletedUser$ = m.prop("")
 
@@ -1079,18 +1114,12 @@ class DeletedUserDialogViewModel {
 	newAnonymousUser$ = m.prop("")
 }
 
-class UserTestcasesDialogViewModel {
-
-	/** The attached view model */
-	vm = null as ViewModel;
+class UserTestcasesDialogViewModel extends DialogViewModel {
 	constructor(vm: ViewModel) {
-		this.vm = vm;
+		super(vm);
 		this.author$(vm.githubUserName$())
 		this.previousUrl$("/#/new")
 	}
-
-	/** Whether the dialog is opened or closed */
-	isOpened$ = m.prop(false)
 
 	/** The author to display the tests of */
 	author$ = m.prop("")
@@ -1111,14 +1140,12 @@ class UserTestcasesDialogViewModel {
 	}
 }
 
-class WelcomeDialogViewModel {
-	/** The attached view model */
-	vm = null as ViewModel;
+class WelcomeDialogViewModel extends DialogViewModel {
 	constructor(vm: ViewModel) {
-		this.vm = vm;
+		super(vm);
 		if(location.hash == '' || location.hash == '#/new') {
 			if(!localStorage.getItem('noWelcome') && !vm.githubIsConnected$()) {
-				this.isOpened$(true);
+				this.open();
 			} else {
 				localStorage.setItem('noWelcome', 'true');
 			}
@@ -1126,24 +1153,9 @@ class WelcomeDialogViewModel {
 			localStorage.setItem('noWelcome', 'true');
 		}
 	}
-
-	/** Whether the dialog is opened or closed */
-	isOpened$ = m.prop(false)
 }
 
-class SearchDialogViewModel {
-	/** The attached view model */
-	vm = null as ViewModel;
-	constructor(vm: ViewModel) {
-		this.vm = vm;
-	}
-
-	/** Whether the dialog is opened or closed */
-	isOpened$ = m.prop(false)
-
-	/** Whether the dialog should get focus */
-	shouldGetFocus$ = m.prop(false)
-
+class SearchDialogViewModel extends DialogViewModel {
 	/** The text that is being searched */
 	searchTerms$ = m.prop("")
 
@@ -1159,6 +1171,46 @@ class SearchDialogViewModel {
 		}
 		this.shouldGetFocus$(true);
 	}
+}
+
+class ExportDialogViewModel extends DialogViewModel {
+	/** The title of the test */
+	title$ = m.prop("UntitledTest")
+
+	/** The file name of the test */
+	fileName$ = m.prop("testcase")
+
+	/** The path to the spec's test folder */
+	filePath$ = m.prop("")
+
+	/** Opens the dialog */
+	open(tm?: TestModel) {
+		if(!this.isOpened$()) {
+			this.title$("UntitledTest");
+			this.fileName$("testcase");
+			this.filePath$("");
+			this.isOpened$(true);
+		}
+		this.shouldGetFocus$(true);
+		if(tm) {
+			this.importValues(tm);
+		}
+	}
+
+	/** Import the values from the global scope */
+	importValues(tm: TestModel) {
+		this.title$(tm.title$());
+		this.fileName$(tm.fileName$());
+		this.filePath$(tm.filePath$());
+	}
+
+	/* Export the values from the global scope */
+	exportValues(tm: TestModel) {
+		tm.title$(this.title$());
+		tm.fileName$(this.fileName$());
+		tm.filePath$(this.filePath$());
+	}
+	
 }
 
 var vm = new ViewModel();

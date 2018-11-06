@@ -23,8 +23,8 @@ var BodyToolbar = new Tag <{ model:TestModel }> ().from(a =>
 	<body-toolbar row role="toolbar">
 		<button onclick={e=>vm.run()} title="Move your code to the iframe">Run</button>
 		<button onclick={e=>{if(e.shiftKey) { vm.saveInUrl() } else if(e.altKey) { vm.saveLocally() } else { vm.saveOnline() }}} title="Save your test online (Shift: url, Alt: local storage)">Save</button>
-		<button onclick={e=>vm.saveToFile()} title="Download as a weplatform test case">Export</button>
-		<button onclick={e=>vm.settingsDialog.isOpened$(true)} title="Open the settings dialog">⋅⋅⋅</button>
+		<button onclick={e=>vm.exportDialog.open(tm)} title="Download or upload as a weplatform test case">Export</button>
+		<button onclick={e=>vm.settingsDialog.open()} title="Open the settings dialog">⋅⋅⋅</button>
 		<hr style="visibility: hidden; flex:1 0 0px;" />
 		<Input value$={a.model.title$} title="Title of your test case" />
 	</body-toolbar>
@@ -973,6 +973,10 @@ var DeletedUserDialog = new Tag().with({
 )
 
 var SettingsDialog = new Tag().with({
+	onupdate(vnode: any) {
+		handleAutofocus(vm.settingsDialog.shouldGetFocus$, vnode.dom);
+	},
+
 	close() {
 		var form = vm.settingsDialog;
 		form.isOpened$(false);
@@ -983,8 +987,8 @@ var SettingsDialog = new Tag().with({
 
 		if (confirmed) {
 			vm.settingsDialog.deleteUser()
-			vm.deletedUserDialog.isOpened$(true)
-			vm.settingsDialog.isOpened$(false)
+			vm.settingsDialog.close()
+			vm.deletedUserDialog.open()
 		}
 	}
 }).from((a,s,self) => 
@@ -1028,7 +1032,12 @@ var SettingsDialog = new Tag().with({
 						Remove your account ({vm.githubUserName$()}) from wptest
 					</button>
 				</label>
-				<hr />
+				<label style="display: block; margin-bottom: 10px">
+					<a style="display: block" href="https://github.com/MicrosoftEdge/wptest" target="_blank">
+						<span class="icon">🍴</span>
+						Contribute and/or fork this site on Github
+					</a>
+				</label>				<hr />
 				<label style="display: block; margin-bottom: 10px">
 					<button hidden={!vm.settingsDialog.useMonaco$()} onclick={e => vm.settingsDialog.useMonaco$(false)} style="display: block">
 						<span class="icon">⚙</span>
@@ -1038,12 +1047,6 @@ var SettingsDialog = new Tag().with({
 						<span class="icon">⚙</span>
 						Enable the advanced text editor on this device from now on
 					</button>
-				</label>
-				<label style="display: block; margin-bottom: 10px">
-					<a style="display: block" href="https://github.com/MicrosoftEdge/wptest" target="_blank">
-						<span class="icon"></span>
-						Contribute on Github
-					</a>
 				</label>
 				<footer style="margin-top: 20px">
 					<input type="submit" value="Close" />
@@ -1055,6 +1058,9 @@ var SettingsDialog = new Tag().with({
 )
 
 var SearchDialog = new Tag().with({
+	onupdate(vnode: any) {
+		handleAutofocus(vm.searchDialog.shouldGetFocus$, vnode.dom);
+	},
 	search() {
 		var form = vm.searchDialog;
 		form.searchUrl$('/search?q=' + encodeURIComponent(form.searchTerms$()) + '&time=' + Date.now());
@@ -1063,16 +1069,6 @@ var SearchDialog = new Tag().with({
 		var form = vm.searchDialog;
 		form.isOpened$(false);
 	},
-	onupdate() {
-		var form = vm.searchDialog;
-		if(this.wasOpened != form.isOpened$()) {
-			if(this.wasOpened) {
-				// TODO: close
-			} else {
-				// TODO: open
-			}
-		}
-	}
 }).from((a,s,self) => 
 	<dialog as="search-dialog" autofocus hidden={!vm.searchDialog.isOpened$()}>
 
@@ -1105,13 +1101,16 @@ var SearchDialog = new Tag().with({
 )
 
 var WelcomeDialog = new Tag().with({
+	onupdate(vnode: any) {
+		handleAutofocus((v => vm.welcomeDialog.isOpened$()) as any, vnode.dom);
+	},
 	close() {
 		var form = vm.welcomeDialog;
 		localStorage.setItem('noWelcome','true');
 		form.isOpened$(false);
 	}
 }).from((a,s,self) => 
-	<dialog as="welcome-dialog" autofocus hidden={!vm.welcomeDialog.isOpened$()}>
+	<dialog as="welcome-dialog" hidden={!vm.welcomeDialog.isOpened$()}>
 
 		<section tabindex="-1">
 			<h1>The Web Platform Test Center</h1>
@@ -1119,7 +1118,7 @@ var WelcomeDialog = new Tag().with({
 				<p>This websites provides tools to simplify the creation of reduced web platform test cases and the search of previously-written test cases.</p>
 				<p>It is primarily addressed at engineers who build web browsers, and web developers who want to help bugs getting fixed by filing reduced issues on existing browsers.</p>
 				<footer style="margin-top: 20px">
-					<input type="submit" value=" Got it! " />
+					<input type="submit" value=" Got it! " autofocus />
 				</footer>
 			</form>
 		</section>
@@ -1127,12 +1126,70 @@ var WelcomeDialog = new Tag().with({
 	</dialog>
 )
 
+interface ExportDialogState { fileContent:string }
+var ExportDialog = new Tag<{},ExportDialogState>().with({
+	onupdate(vnode: any) {
+		handleAutofocus(vm.exportDialog.shouldGetFocus$, vnode.dom);
+	},
+	close() {
+		var dialog = vm.exportDialog;
+		dialog.isOpened$(false);
+	},
+	onbeforesubmit() {
+		var dialog = vm.exportDialog;
+		dialog.exportValues(tm);
+	},
+	onsubmit(e: Event) {
+		
+		// make sure we sync before going any further
+		this.onbeforesubmit();
+
+		// update the form submission info
+		this.fileContent = vm.saveToFileString();
+
+		// close the dialog once submission is done
+		setTimeout(time => this.close(), 100);
+
+	},
+}).from((a,s,self) => 
+	<dialog as="export-dialog" hidden={!vm.exportDialog.isOpened$()}>
+
+		<section tabindex="-1">
+			<h1>Exporting your test</h1>
+			<form method="GET" action={"https://github.com/web-platform-tests/wpt/new/master/" + vm.exportDialog.filePath$()} target="_blank" onsubmit={e=>self.onsubmit(e)} style="font-size: 87.5%">
+				<label style="display: block; margin-bottom: 10px">
+					Test title:<br/>
+					<Input name="message" value$={vm.exportDialog.title$} autofocus={/^(|UntitledTest)$/.test(vm.exportDialog.title$())} style="width: 400px"/>
+				</label>
+				<label style="display: block; margin-bottom: 10px">
+					File name:<br/>
+					<Input name="filename" value$={vm.exportDialog.fileName$} autofocus={/^(|testcase)$/.test(vm.exportDialog.fileName$())} style="width: 400px" />
+				</label>
+				<label style="display: block; margin-bottom: 10px">
+					Test folder path:<br/>
+					<Input value$={vm.exportDialog.filePath$} autofocus={/^()$/.test(vm.exportDialog.filePath$())} style="width: 400px" />
+				</label>
+				<input type="hidden" name="value" value={self.fileContent} />
+				<footer style="margin-top: 20px">
+					<input type="button" value="Download" onclick={e=>{self.onbeforesubmit();vm.saveToFile();self.close()}} />
+					&nbsp;
+					<input type="submit" value="Create pull request" autofocus />
+					&nbsp;
+					<input type="button" value="Close" onclick={e=>self.close()} />
+				</footer>
+			</form>
+		</section>
+
+	</dialog>
+)
+
+
 var TestEditorView = new Tag <{id:string}> ().from(a => {
 
 	// check if url pointing to an user instead of test
 	if(location.hash.substr(2, 2) === 'u/') {
 		vm.closeAllDialogs();
-		vm.userTestcasesDialog.isOpened$(true);
+		vm.userTestcasesDialog.open();
 		vm.userTestcasesDialog.updateAuthorOfTestcases(location.hash.substr(4))
 	}
 
@@ -1186,18 +1243,20 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 	return (
 		<body>
 
-			<BodyToolbar model={tm} />
-			<top-row row>
-				<HTMLPane isFocused$={vm.isHtmlPaneFocused$} />
-				<CSSPane isFocused$={vm.isCssPaneFocused$} />
-				<JSPane isFocused$={vm.isJsPaneFocused$} />
-			</top-row>
+			<main inert={vm.isAnyDialogOpen$()}>
+				<BodyToolbar model={tm} />
+				<top-row row>
+					<HTMLPane isFocused$={vm.isHtmlPaneFocused$} />
+					<CSSPane isFocused$={vm.isCssPaneFocused$} />
+					<JSPane isFocused$={vm.isJsPaneFocused$} />
+				</top-row>
 
-			<bottom-row row>
-				<OutputPane />
-				<DOMViewPane />
-				<ToolsPane />
-			</bottom-row>
+				<bottom-row row>
+					<OutputPane />
+					<DOMViewPane />
+					<ToolsPane />
+				</bottom-row>
+			</main>
 
 			<UserTestcasesDialog />
 			<SelectorGenerationDialog />
@@ -1205,6 +1264,7 @@ var TestEditorView = new Tag <{id:string}> ().from(a => {
 			<DeletedUserDialog />
 			<SearchDialog />
 			<WelcomeDialog />
+			<ExportDialog />
 
 		</body>
 	).children;

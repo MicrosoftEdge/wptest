@@ -8,7 +8,9 @@ interface TestDataModel {
 	jsHead: string,
 	jsBody: string,
 	watches: Array<string>,
-	watchValues: Array<string>
+	watchValues: Array<string>,
+	fileName: string,
+	filePath: string,
 }
 
 interface TestModel extends TestDataModel {
@@ -19,7 +21,9 @@ interface TestModel extends TestDataModel {
 	jsBody$: Prop<string>,
 	watches$: Prop<string[]>,
 	watchValues$: Prop<string[]>,
-	sourceModel: TestDataModel
+	fileName$: Prop<string>,
+	filePath$: Prop<string>,
+	sourceModel: TestDataModel,
 }
 interface ScriptTestResultModel {
 	index: number,
