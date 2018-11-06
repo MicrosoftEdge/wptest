@@ -1126,7 +1126,7 @@ var WelcomeDialog = new Tag().with({
 	</dialog>
 )
 
-interface ExportDialogState { fileContent:string }
+interface ExportDialogState { fileName: string, fileContent:string }
 var ExportDialog = new Tag<{},ExportDialogState>().with({
 	onupdate(vnode: any) {
 		handleAutofocus(vm.exportDialog.shouldGetFocus$, vnode.dom);
@@ -1146,6 +1146,11 @@ var ExportDialog = new Tag<{},ExportDialogState>().with({
 
 		// update the form submission info
 		this.fileContent = vm.saveToFileString();
+		if(!/[.](html|htm|xht|xhtml)$/i.test(this.fileName$())) {
+			this.fileName = this.fileName$() + '.html';
+		} else {
+			this.fileName = this.fileName$();
+		}
 
 		// close the dialog once submission is done
 		setTimeout(time => this.close(), 100);
@@ -1163,12 +1168,13 @@ var ExportDialog = new Tag<{},ExportDialogState>().with({
 				</label>
 				<label style="display: block; margin-bottom: 10px">
 					File name:<br/>
-					<Input name="filename" value$={vm.exportDialog.fileName$} autofocus={/^(|testcase)$/.test(vm.exportDialog.fileName$())} style="width: 400px" />
+					<Input value$={vm.exportDialog.fileName$} autofocus={/^(|testcase)$/.test(vm.exportDialog.fileName$())} style="width: 400px" />
 				</label>
 				<label style="display: block; margin-bottom: 10px">
 					Test folder path:<br/>
 					<Input value$={vm.exportDialog.filePath$} autofocus={/^()$/.test(vm.exportDialog.filePath$())} style="width: 400px" />
 				</label>
+				<input type="hidden" name="filename" value={self.fileName} />
 				<input type="hidden" name="value" value={self.fileContent} />
 				<footer style="margin-top: 20px">
 					<input type="button" value="Download" onclick={e=>{self.onbeforesubmit();vm.saveToFile();self.close()}} />

@@ -1414,13 +1414,15 @@ var ViewModel = /** @class */ (function () {
         if (tm.jsBody) {
             ln(__makeTemplateObject(["<script>", "</script>"], ["<script>", "</script>"]), "\n\n" + tm.jsBody + "\n\n");
         }
-        ln(__makeTemplateObject(["<script>\nvar test_description = document.title;\npromise_test(\n\tt => {\n\t\treturn new Promise(test => addEventListener('load', e=>test()))\n\t\t", "\n\t},\n\ttest_description\n);\n</script>"], ["<script>\nvar test_description = document.title;\npromise_test(\n\tt => {\n\t\treturn new Promise(test => addEventListener('load', e=>test()))\n\t\t",
-            "\n\t},\n\ttest_description\n);\n</script>"]), Array.from(tm.watches).map(function (expr) { return ({
-            expression: expr,
-            jsValue: vm.watchValues[expr]
-        }); }).filter(function (w) { return !!w.expression; }).map(function (w) {
-            return ".then(test => assert_equals(" + expandShorthandsIn(w.expression) + ", " + JSON.stringify(w.jsValue) + ", " + JSON.stringify("Invalid " + w.expression + ";") + "))";
-        }).join('\n\t\t'));
+        if (Array.from(tm.watches).length > 0 || !tm.jsBody) {
+            ln(__makeTemplateObject(["<script>\nvar test_description = document.title;\npromise_test(\n\tt => {\n\t\treturn new Promise(test => addEventListener('load', e=>test()))\n\t\t", "\n\t},\n\ttest_description\n);\n</script>"], ["<script>\nvar test_description = document.title;\npromise_test(\n\tt => {\n\t\treturn new Promise(test => addEventListener('load', e=>test()))\n\t\t",
+                "\n\t},\n\ttest_description\n);\n</script>"]), Array.from(tm.watches).map(function (expr) { return ({
+                expression: expr,
+                jsValue: vm.watchValues[expr]
+            }); }).filter(function (w) { return !!w.expression; }).map(function (w) {
+                return ".then(test => assert_equals(" + expandShorthandsIn(w.expression) + ", " + JSON.stringify(w.jsValue) + ", " + JSON.stringify("Invalid " + w.expression + ";") + "))";
+            }).join('\n\t\t'));
+        }
         return html;
     };
     /** Exports the test into a web platform test and initiate a download */
@@ -1429,7 +1431,11 @@ var ViewModel = /** @class */ (function () {
         var blob = new Blob([html], { type: 'text/html' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
-        a.setAttribute("download", (tm.fileName || "testcase") + ".html");
+        var fileName = (tm.fileName || "testcase");
+        if (!/[.](html|htm|xht|xhtml)$/i.test(fileName)) {
+            fileName += '.html';
+        }
+        a.setAttribute("download", fileName);
         a.href = url;
         a.click();
         setTimeout(function (x) { return URL.revokeObjectURL(url); }, 10000);
@@ -2606,6 +2612,12 @@ var ExportDialog = new Tag().with({
         this.onbeforesubmit();
         // update the form submission info
         this.fileContent = vm.saveToFileString();
+        if (!/[.](html|htm|xht|xhtml)$/i.test(this.fileName$())) {
+            this.fileName = this.fileName$() + '.html';
+        }
+        else {
+            this.fileName = this.fileName$();
+        }
         // close the dialog once submission is done
         setTimeout(function (time) { return _this.close(); }, 100);
     },
@@ -2621,11 +2633,12 @@ var ExportDialog = new Tag().with({
                 React.createElement("label", { style: "display: block; margin-bottom: 10px" },
                     "File name:",
                     React.createElement("br", null),
-                    React.createElement(Input, { name: "filename", "value$": vm.exportDialog.fileName$, autofocus: /^(|testcase)$/.test(vm.exportDialog.fileName$()), style: "width: 400px" })),
+                    React.createElement(Input, { "value$": vm.exportDialog.fileName$, autofocus: /^(|testcase)$/.test(vm.exportDialog.fileName$()), style: "width: 400px" })),
                 React.createElement("label", { style: "display: block; margin-bottom: 10px" },
                     "Test folder path:",
                     React.createElement("br", null),
                     React.createElement(Input, { "value$": vm.exportDialog.filePath$, autofocus: /^()$/.test(vm.exportDialog.filePath$()), style: "width: 400px" })),
+                React.createElement("input", { type: "hidden", name: "filename", value: self.fileName }),
                 React.createElement("input", { type: "hidden", name: "value", value: self.fileContent }),
                 React.createElement("footer", { style: "margin-top: 20px" },
                     React.createElement("input", { type: "button", value: "Download", onclick: function (e) { self.onbeforesubmit(); vm.saveToFile(); self.close(); } }),

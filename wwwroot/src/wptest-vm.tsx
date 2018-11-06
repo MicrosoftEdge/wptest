@@ -1000,7 +1000,9 @@ promise_test(
 		var blob = new Blob([html], { type: 'text/html' });
 		var url = URL.createObjectURL(blob);
 		var a = document.createElement("a");
-		a.setAttribute("download", (tm.fileName || "testcase") + ".html");
+		var fileName = (tm.fileName || "testcase");
+		if(!/[.](html|htm|xht|xhtml)$/i.test(fileName)) { fileName += '.html'; }
+		a.setAttribute("download", fileName);
 		a.href = url;
 		a.click();
 		setTimeout(x => URL.revokeObjectURL(url), 10000);
