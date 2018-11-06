@@ -1168,11 +1168,11 @@ var ExportDialog = new Tag<{},ExportDialogState>().with({
 				</label>
 				<label style="display: block; margin-bottom: 10px">
 					File name:<br/>
-					<Input value$={vm.exportDialog.fileName$} autofocus={/^(|testcase)$/.test(vm.exportDialog.fileName$())} style="width: 400px" />
+					<Input value$={vm.exportDialog.fileName$} autocomplete="off" autofocus={/^(|testcase)$/.test(vm.exportDialog.fileName$())} style="width: 400px" />
 				</label>
 				<label style="display: block; margin-bottom: 10px">
 					Test folder path:<br/>
-					<Input value$={vm.exportDialog.filePath$} autofocus={/^()$/.test(vm.exportDialog.filePath$())} style="width: 400px" />
+					<Input value$={vm.exportDialog.filePath$} autocomplete="off" autofocus={/^()$/.test(vm.exportDialog.filePath$())} style="width: 400px" />
 				</label>
 				<input type="hidden" name="filename" value={self.fileName} />
 				<input type="hidden" name="value" value={self.fileContent} />
