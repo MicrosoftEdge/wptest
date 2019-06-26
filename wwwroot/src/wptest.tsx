@@ -930,7 +930,7 @@ var SelectorGenerationDialog = new Tag().with({
 				</label>
 				<label style="display: block; margin-bottom: 10px">
 					<InputRadio name="chosenMode" value="id" checkedValue$={vm.selectorGenerationDialog.chosenMode$} />
-					Assign an id the the element
+					Assign an id to the element
 					<Input type="text" value$={vm.selectorGenerationDialog.chosenId$} onfocus={e=>vm.selectorGenerationDialog.chosenMode$('id')} />
 				</label>
 				<label style="display: block; margin-bottom: 10px">
