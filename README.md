@@ -1,8 +1,8 @@
 # [wptest](https://wptest.center/#/new)
 An online web application to reduce web issues directly to webplatform tests.
 
-# THIS REPO IS NOW ARCHIVED. IF YOU WOULD LIKE TO PARTICIPATE IN THIS PROJECT,
-# PLEASE GO TO THE NEW LOCATION [Edior](https://github.com/web-platform-tests/editor).
+## THIS REPO IS NOW ARCHIVED. IF YOU WOULD LIKE TO PARTICIPATE IN THIS PROJECT,
+## PLEASE GO TO THE NEW LOCATION [Editor](https://github.com/web-platform-tests/editor).
 
 
 ### See it live
